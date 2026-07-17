@@ -109,58 +109,58 @@ Utilizando la tarifa de referencia sugerida de $ 0,75 por kWh:
 
 
 
-Directrices para Ciencia de Datos
+## Directrices para Ciencia de Datos
 
 Cada equipo deberá construir su propia base de datos relacionada con el consumo energético.
 
 Los datos podrán ser:
-Recopilados de fuentes públicas;
-Obtenidos de bases de datos abiertas;
-Generados manualmente por el equipo;
-Simulados para representar diferentes perfiles de consumo.
+- Recopilados de fuentes públicas;
+- Obtenidos de bases de datos abiertas;
+- Generados manualmente por el equipo;
+- Simulados para representar diferentes perfiles de consumo.
 
 Se recomienda utilizar:
-Python;
-Pandas;
-Scikit-Learn;
-Regresión Logística;
-Random Forest;
-Árboles de Decisión.
-Se permite el uso de otros modelos.
+- Python;
+- Pandas;
+- Scikit-Learn;
+- Regresión Logística;
+- Random Forest;
+- Árboles de Decisión.
+- Se permite el uso de otros modelos.
 
 Los equipos deberán definir y justificar los criterios utilizados para caracterizar los diferentes perfiles de eficiencia energética.
 
 
-Directrices para Back-End
+## Directrices para Back-End
 
 La solución deberá poner a disposición una API REST desarrollada preferentemente en Java con Spring Boot.
 
 La API deberá:
-Recibir los datos de consumo;
-Ejecutar el análisis;
-Devolver la clasificación, probabilidad y recomendaciones;
-Devolver respuestas en formato JSON;
-Implementar validaciones y manejo de errores.
-La arquitectura elegida deberá ser documentada por el equipo.
+- Recibir los datos de consumo;
+- Ejecutar el análisis;
+- Devolver la clasificación, probabilidad y recomendaciones;
+- Devolver respuestas en formato JSON;
+- Implementar validaciones y manejo de errores.
+- La arquitectura elegida deberá ser documentada por el equipo.
 
 
-OCI
+## OCI
 
 La solución debe utilizar al menos un servicio OCI como parte obligatoria del proyecto.
 
 Sugerencias:
-Object Storage para almacenamiento de modelos o archivos;
-OCI Compute para el despliegue de la API;
-OCI Functions para procesamiento complementario;
-Base de datos opcional para persistencia.
+- Object Storage para almacenamiento de modelos o archivos;
+- OCI Compute para el despliegue de la API;
+- OCI Functions para procesamiento complementario;
+- Base de datos opcional para persistencia.
 
 
-Front-End (opcional)
+## Front-End (opcional)
 
 Opcionalmente, el equipo podrá desarrollar una interfaz sencilla para:
-Ingreso de información de consumo;
-Visualización de los resultados del análisis;
-Visualización de recomendaciones;
-Presentación de gráficos e indicadores.
+- Ingreso de información de consumo;
+- Visualización de los resultados del análisis;
+- Visualización de recomendaciones;
+- Presentación de gráficos e indicadores.
 
 El desarrollo del Front-End no es obligatorio para el MVP.
