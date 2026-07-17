@@ -1,5 +1,6 @@
 # Encuesta a Estados Unidos
-RECS - Residential Energy Consumption Survey
+
+RECS - Residential Energy Consumption Survey.
 Fuente: https://www.eia.gov/consumption/residential/data/2024/index.php?view=microdata
 Año: 2024  (disponible tambien para 2020 y 2016 entre otros)
 
