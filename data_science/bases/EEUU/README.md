@@ -17,8 +17,9 @@ Notas: La encuesta del año 2024 aún no tiene información sobre el consumo en 
 
 |Archivo | Formato  |Descripción |
 |--|--|--|
-|  | csv | Base de datos    |
-|   | xlx| Diccionario    |
-|   | pdf | Metodología    |
+| recs2015_publicv4 | csv | Base de datos    |
+| codebook_publicv4  | xlsx| Diccionario    |
+| RECSmethodology2015  | pdf | Metodología  RECS  |
+| 2015C&EMethodology2015  | pdf | Metodología  ESS (energy suply survey)  |
 
 
