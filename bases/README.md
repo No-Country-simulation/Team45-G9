@@ -1,1 +1,0 @@
-Reamde de las bases
