@@ -1,1 +1,0 @@
-reademe de los modelos
