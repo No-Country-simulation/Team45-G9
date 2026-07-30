@@ -92,25 +92,199 @@
             <span class="tab-panel__icon">📍</span>
             <div>
               <h2 class="card__title">Ubicación & Tarifa</h2>
-              <p class="card__hint">Ajusta la moneda, la tarifa referencial y confirma el valor real de tu boleta.</p>
+              <p class="card__hint">Indica dónde vives y cómo prefieres ingresar tu consumo.</p>
             </div>
           </div>
 
-          <div class="tab-panel__grid tab-panel__grid--2col">
-            <!-- País -->
-            <div class="field-group">
-              <label class="field-label" for="selectPais">🌎 País</label>
-              <select id="selectPais">
-                <option value="">Cargando países…</option>
-              </select>
-              <p class="card__hint" id="fuenteTarifa"></p>
+          <!-- ── PASO 1: ¿DÓNDE VIVES? ──────────────────────── -->
+          <div class="ubi-step" id="ubiStep1">
+            <div class="ubi-step__label">
+              <span class="ubi-step__num">1</span>
+              <span class="ubi-step__title">¿Dónde vives?</span>
+              <button type="button" class="ubi-step__toggle" id="toggleStep1" aria-expanded="true" aria-controls="ubiStep1Body">
+                <span class="ubi-step__toggle-icon">▲</span>
+              </button>
             </div>
 
-            <!-- Tarifa -->
-            <div class="field-group">
-              <label class="field-label" for="tarifaClp">⚡ Valor del kWh en tu boleta <span id="labelMoneda" style="font-family:var(--font-mono);font-size:0.78rem;font-weight:400;color:var(--text-muted);"></span></label>
-              <input type="number" min="0.001" step="0.001" value="150" id="tarifaClp">
-              <p class="card__hint" id="hintTarifa">Cargando tarifa referencial…</p>
+            <div class="ubi-step__body" id="ubiStep1Body">
+              <!-- País + Provincia -->
+              <div class="tab-panel__grid tab-panel__grid--2col">
+                <div class="field-group">
+                  <label class="field-label" for="selectPais">🌎 País</label>
+                  <select id="selectPais">
+                    <option value="">Cargando países…</option>
+                  </select>
+                  <p class="card__hint" id="fuenteTarifa"></p>
+                </div>
+
+                <div class="field-group">
+                  <label class="field-label" for="selectProvincia">🗺️ Provincia / Estado / Región</label>
+                  <input type="text" id="selectProvincia" placeholder="Ej: Santiago, Buenos Aires, CDMX…" autocomplete="off" maxlength="80">
+                  <p class="card__hint">Ayuda a estimar el clima local.</p>
+                </div>
+              </div>
+
+              <!-- Tarifa kWh -->
+              <div class="field-group" style="margin-top:1rem;">
+                <label class="field-label" for="tarifaClp">⚡ Valor del kWh <span id="labelMoneda" style="font-family:var(--font-mono);font-size:0.78rem;font-weight:400;color:var(--text-muted);"></span></label>
+                <input type="number" min="0.001" step="0.001" value="150" id="tarifaClp" style="width:11rem;">
+                <p class="card__hint" id="hintTarifa">Cargando tarifa referencial…</p>
+              </div>
+
+              <!-- Tipo de inmueble -->
+              <div class="selector-section" id="selectorTipoInmueble" style="margin-top:1.25rem;">
+                <div class="selector-section__header">
+                  <span class="selector-section__icon">🏠</span>
+                  <div>
+                    <h3 class="selector-section__title">¿Qué tipo de vivienda tienes?</h3>
+                  </div>
+                </div>
+                <div class="tipo-inmueble-btns" role="group" aria-label="Tipo de inmueble">
+                  <button type="button" class="tipo-inmueble-btn tipo-inmueble-btn--active" data-valor="Casa" id="tipoBtn-casa">
+                    <span class="tipo-inmueble-btn__icon">🏠</span>
+                    <span class="tipo-inmueble-btn__label">Casa aislada</span>
+                  </button>
+                  <button type="button" class="tipo-inmueble-btn" data-valor="Casa pareada" id="tipoBtn-pareada">
+                    <span class="tipo-inmueble-btn__icon">🏘️</span>
+                    <span class="tipo-inmueble-btn__label">Casa pareada</span>
+                  </button>
+                  <button type="button" class="tipo-inmueble-btn" data-valor="Departamento" id="tipoBtn-depto">
+                    <span class="tipo-inmueble-btn__icon">🏢</span>
+                    <span class="tipo-inmueble-btn__label">Departamento</span>
+                  </button>
+                  <button type="button" class="tipo-inmueble-btn" data-valor="Casa móvil" id="tipoBtn-movil">
+                    <span class="tipo-inmueble-btn__icon">🚐</span>
+                    <span class="tipo-inmueble-btn__label">Casa móvil</span>
+                  </button>
+                  <button type="button" class="tipo-inmueble-btn tipo-inmueble-btn--otro" data-valor="otro" id="tipoBtn-otro">
+                    <span class="tipo-inmueble-btn__icon">✏️</span>
+                    <span class="tipo-inmueble-btn__label">Otro…</span>
+                  </button>
+                </div>
+                <div class="tipo-inmueble-otro-wrap" id="tipoOtroWrap" hidden>
+                  <label class="field-label" for="tipoOtroInput">Describe tu tipo de vivienda</label>
+                  <input type="text" id="tipoOtroInput" class="tipo-inmueble-otro-input"
+                    placeholder="Ej: duplex con jardín, casa en condominio, rancho…"
+                    autocomplete="off" maxlength="120">
+                </div>
+              </div>
+
+              <!-- Botón avanzar -->
+              <div class="ubi-step__next">
+                <button type="button" class="btn btn--step-next" id="btnIrPaso2">
+                  Siguiente — ¿Cómo ingreso mi consumo? →
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── PASO 2: ¿CÓMO QUIERES INGRESAR TU CONSUMO? ── -->
+          <div class="ubi-step ubi-step--collapsed" id="ubiStep2">
+            <div class="ubi-step__label">
+              <span class="ubi-step__num">2</span>
+              <span class="ubi-step__title">¿Cómo quieres ingresar tu consumo?</span>
+              <button type="button" class="ubi-step__toggle" id="toggleStep2" aria-expanded="false" aria-controls="ubiStep2Body">
+                <span class="ubi-step__toggle-icon">▼</span>
+              </button>
+            </div>
+
+            <div class="ubi-step__body" id="ubiStep2Body" hidden>
+              <!-- Rangos kWh -->
+              <div class="selector-section" id="selectorKwh" style="margin-top:0;border:none;padding:0;background:transparent;">
+                <div class="selector-section__header">
+                  <span class="selector-section__icon">⚡</span>
+                  <div>
+                    <h3 class="selector-section__title">Selecciona un rango o ingresa el valor exacto</h3>
+                    <p class="selector-section__hint">Si marcas artefactos en las otras pestañas, lo calculamos automáticamente.</p>
+                  </div>
+                </div>
+                <div class="kwh-range-btns" role="group" aria-label="Rango de consumo kWh">
+                  <button type="button" class="kwh-range-btn kwh-range-btn--bajo" data-kwh="100" data-rango="bajo" id="kwhBtn-bajo">
+                    <span class="kwh-range-btn__dot">🟢</span>
+                    <span class="kwh-range-btn__label">Bajo</span>
+                    <span class="kwh-range-btn__desc">Menos de 150 kWh/mes<br><small>Depto. o consumo mínimo</small></span>
+                  </button>
+                  <button type="button" class="kwh-range-btn kwh-range-btn--medio" data-kwh="225" data-rango="medio" id="kwhBtn-medio">
+                    <span class="kwh-range-btn__dot">🟡</span>
+                    <span class="kwh-range-btn__label">Medio</span>
+                    <span class="kwh-range-btn__desc">150–300 kWh/mes<br><small>Casa promedio</small></span>
+                  </button>
+                  <button type="button" class="kwh-range-btn kwh-range-btn--alto" data-kwh="400" data-rango="alto" id="kwhBtn-alto">
+                    <span class="kwh-range-btn__dot">🟠</span>
+                    <span class="kwh-range-btn__label">Alto</span>
+                    <span class="kwh-range-btn__desc">300–500 kWh/mes<br><small>Casa grande / elevado</small></span>
+                  </button>
+                  <button type="button" class="kwh-range-btn kwh-range-btn--nose" data-kwh="250" data-rango="nose" id="kwhBtn-nose">
+                    <span class="kwh-range-btn__dot">🔴</span>
+                    <span class="kwh-range-btn__label">No lo sé</span>
+                    <span class="kwh-range-btn__desc">Usamos 250 kWh<br><small>Promedio estándar</small></span>
+                  </button>
+                  <button type="button" class="kwh-range-btn kwh-range-btn--boleta" data-kwh="0" data-rango="boleta" id="kwhBtn-boleta">
+                    <span class="kwh-range-btn__dot">✏️</span>
+                    <span class="kwh-range-btn__label">Tengo mi boleta</span>
+                    <span class="kwh-range-btn__desc">Ingresar número exacto</span>
+                  </button>
+                </div>
+                <div class="kwh-exact-wrap" id="kwhExactWrap" hidden>
+                  <label class="field-label" for="kwhExactoInput">Consumo de tu boleta (kWh/mes)</label>
+                  <div class="kwh-exact-input-row">
+                    <input type="number" id="kwhExactoInput" class="kwh-exact-input"
+                      min="1" max="9999" step="1" placeholder="Ej: 245">
+                    <span class="kwh-exact-unit">kWh/mes</span>
+                  </div>
+                </div>
+                <div class="kwh-rango-badge" id="kwhRangoBadge" hidden>
+                  <span id="kwhRangoBadgeText"></span>
+                </div>
+              </div>
+
+              <!-- Boleta eléctrica -->
+              <div class="boleta-section" style="margin-top:1.25rem;">
+                <div class="boleta-header">
+                  <span class="boleta-icon">🧾</span>
+                  <div>
+                    <h3 class="boleta-title">¿Tienes tu boleta a mano?</h3>
+                    <p class="boleta-subtitle">Súbela y extraemos el consumo y tarifa automáticamente.</p>
+                  </div>
+                </div>
+
+                <div class="boleta-dropzone" id="boletaDropzone">
+                  <input type="file" id="boletaFile" accept="image/*,.pdf" class="boleta-input" aria-label="Subir boleta eléctrica">
+                  <div class="boleta-dropzone__content" id="boletaDropContent">
+                    <div class="boleta-dropzone__icon">📄</div>
+                    <p class="boleta-dropzone__text">Arrastra tu boleta aquí o <span class="boleta-link">selecciona un archivo</span></p>
+                    <p class="boleta-dropzone__hint">PNG, JPG, WEBP o PDF · Máx. 10 MB</p>
+                  </div>
+                  <img id="boletaPreview" class="boleta-preview" alt="Vista previa de la boleta" hidden>
+                </div>
+
+                <div class="boleta-actions" id="boletaActions" hidden>
+                  <button type="button" id="btnAnalizarBoleta" class="btn btn--boleta">
+                    <span class="btn-icon">🔍</span> Analizar boleta
+                  </button>
+                  <button type="button" id="btnQuitarBoleta" class="btn btn--ghost-sm">✕ Quitar</button>
+                </div>
+
+                <div class="boleta-resultado" id="boletaResultado" hidden>
+                  <div class="boleta-resultado__inner">
+                    <div class="boleta-resultado__row" id="boletaKwhRow" hidden>
+                      <span class="boleta-resultado__label">⚡ Consumo detectado</span>
+                      <span class="boleta-resultado__valor" id="boletaKwhValor">—</span>
+                    </div>
+                    <div class="boleta-resultado__row" id="boletaTarifaRow" hidden>
+                      <span class="boleta-resultado__label">💰 Tarifa por kWh</span>
+                      <span class="boleta-resultado__valor" id="boletaTarifaValor">—</span>
+                    </div>
+                    <div class="boleta-resultado__nota" id="boletaNota"></div>
+                    <div class="boleta-resultado__confianza" id="boletaConfianza"></div>
+                    <button type="button" id="btnAplicarBoleta" class="btn btn--success-sm" hidden>
+                      ✅ Aplicar estos valores al cálculo
+                    </button>
+                  </div>
+                </div>
+
+                <div class="boleta-error" id="boletaError" hidden></div>
+              </div>
             </div>
           </div>
         </section>

@@ -1,15 +1,30 @@
+import base64
 import os
+import re
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
+from werkzeug.utils import secure_filename
 
 from src import calculos
 
 load_dotenv()
 
 app = Flask(__name__)
+
+# Configuración de subida de archivos
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB máximo
+EXTENSIONES_PERMITIDAS = {"png", "jpg", "jpeg", "webp", "pdf"}
+
+
+def extension_permitida(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in EXTENSIONES_PERMITIDAS
+
 
 SYSTEM_PROMPT_NARRADOR = """Eres "VólticvS", un asesor energético con buen humor de Chile.
 Ya se calcularon con exactitud el consumo y el ahorro potencial del hogar del usuario;
@@ -81,6 +96,49 @@ def paises():
     return jsonify(datos)
 
 
+@app.route("/api/interpretar-campo", methods=["POST"])
+def interpretar_campo():
+    """
+    Llamada Opcional #1 (solo cuando el usuario escribe "Otro" en tipo de inmueble).
+    Recibe { campo: "tipo_inmueble", texto: "..." } y mapea el texto libre a uno
+    de los valores conocidos del sistema usando el LLM.
+    Máximo 1 llamada LLM por campo libre ingresado.
+    """
+    data = request.get_json(force=True) or {}
+    campo = data.get("campo", "")
+    texto = (data.get("texto") or "").strip()
+
+    if not texto:
+        return jsonify({"valor_mapeado": "Casa", "fuente": "fallback_vacio"})
+
+    VALORES_INMUEBLE = ["Casa", "Casa pareada", "Departamento", "Casa móvil", "Otro"]
+    groq_api_key = os.getenv("GROQ_API_KEY")
+
+    if not groq_api_key:
+        # Sin API key: devolvemos el texto tal cual como fallback limpio
+        return jsonify({"valor_mapeado": texto[:50], "fuente": "fallback_sin_api"})
+
+    try:
+        llm = ChatGroq(
+            model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+            temperature=0,
+            api_key=groq_api_key,
+        )
+        prompt = (
+            f"El usuario describió su tipo de vivienda como: '{texto}'.\n"
+            f"Mapea esto al valor MÁS CERCANO de esta lista exacta: {VALORES_INMUEBLE}.\n"
+            f"Responde SOLO con el valor exacto de la lista, sin explicaciones ni puntos."
+        )
+        respuesta = llm.invoke([HumanMessage(content=prompt)])
+        valor = respuesta.content.strip().strip("\"'.")
+        # Validar que el valor esté en la lista permitida
+        if valor not in VALORES_INMUEBLE:
+            valor = "Casa"
+        return jsonify({"valor_mapeado": valor, "fuente": "llm"})
+    except Exception as e:
+        return jsonify({"valor_mapeado": "Casa", "fuente": "fallback_error", "detalle": str(e)})
+
+
 @app.route("/api/comparar", methods=["POST"])
 def comparar():
     datos = request.get_json(force=True)
@@ -91,6 +149,7 @@ def comparar():
         return jsonify(resultado)
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+
 
 
 @app.route("/")
@@ -174,6 +233,155 @@ def calcular():
 
     resumen["narrativa"] = generar_narrativa(resumen)
     return jsonify(resumen)
+
+@app.route("/api/subir-boleta", methods=["POST"])
+def subir_boleta():
+    """
+    Recibe una imagen (PNG/JPG/WEBP) o PDF de la boleta eléctrica.
+    - PDF: extrae el texto con pdfplumber y lo analiza con Groq.
+    - Imagen: codifica en base64 y usa el modelo de visión de Groq.
+    Devuelve: {kwh_mes, tarifa_kwh, moneda, simbolo, confianza, nota}
+    """
+    if "boleta" not in request.files:
+        return jsonify({"error": "No se recibió ningún archivo."}), 400
+
+    archivo = request.files["boleta"]
+    pais_codigo = request.form.get("pais", "CL")
+
+    if archivo.filename == "":
+        return jsonify({"error": "Nombre de archivo vacío."}), 400
+
+    if not extension_permitida(archivo.filename):
+        return jsonify({"error": "Solo se aceptan imágenes (PNG, JPG, WEBP) o PDF."}), 400
+
+    # Guardar temporalmente
+    nombre_seguro = secure_filename(archivo.filename)
+    ruta_temp = os.path.join(app.config["UPLOAD_FOLDER"], nombre_seguro)
+    archivo.save(ruta_temp)
+
+    # Obtener info del país
+    datos_pais = calculos.REFERENCIA["paises"].get(pais_codigo, {})
+    moneda  = datos_pais.get("moneda",  "local")
+    simbolo = datos_pais.get("simbolo", "")
+    nombre_pais = datos_pais.get("nombre", "tu país")
+
+    try:
+        import json as _json
+        extension = nombre_seguro.rsplit(".", 1)[1].lower()
+        groq_api_key = os.getenv("GROQ_API_KEY")
+
+        prompt_extraccion = f"""Analiza esta boleta eléctrica de {nombre_pais} (moneda: {moneda}).
+
+Extrae con precisión:
+1. El CONSUMO TOTAL en kWh del período facturado (busca: kWh, consumo, energía activa, kwh consumidos).
+2. El PRECIO POR kWh en {moneda} (busca: tarifa, precio unitario, costo por kWh, valor kWh).
+
+RESPONDE SOLO con este JSON exacto, sin texto adicional:
+{{"kwh_mes": NÚMERO_O_NULL, "tarifa_kwh": NÚMERO_O_NULL, "confianza": "alta|media|baja", "nota": "explicación breve"}}"""
+
+        # ── CASO PDF: extraer texto con pdfplumber ──────────────────
+        if extension == "pdf":
+            import pdfplumber
+            texto_pdf = ""
+            with pdfplumber.open(ruta_temp) as pdf:
+                for pagina in pdf.pages:
+                    texto_pagina = pagina.extract_text()
+                    if texto_pagina:
+                        texto_pdf += texto_pagina + "\n"
+
+            if not texto_pdf.strip():
+                return jsonify({
+                    "error": "No se pudo extraer texto del PDF. Puede ser un PDF escaneado sin texto. Prueba subiendo una foto (JPG/PNG)."
+                }), 422
+
+            # Intentar extraer con regex primero (rápido, sin API)
+            kwh_regex   = re.search(r'(\d[\d.,]+)\s*kWh', texto_pdf, re.IGNORECASE)
+            tarifa_regex = re.search(
+                r'(?:tarifa|precio|costo|valor)\s*(?:por\s*)?kWh[^0-9]*(\d[\d.,]+)',
+                texto_pdf, re.IGNORECASE
+            )
+
+            kwh_extraido   = float(kwh_regex.group(1).replace(",", "."))   if kwh_regex   else None
+            tarifa_extraida = float(tarifa_regex.group(1).replace(",", ".")) if tarifa_regex else None
+
+            # Si no tenemos ambos valores, usar Groq con texto
+            if groq_api_key and (kwh_extraido is None or tarifa_extraida is None):
+                llm = ChatGroq(
+                    model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+                    temperature=0,
+                    api_key=groq_api_key,
+                )
+                contenido_prompt = f"{prompt_extraccion}\n\nTEXTO DE LA BOLETA:\n{texto_pdf[:4000]}"
+                respuesta = llm.invoke([HumanMessage(content=contenido_prompt)])
+                texto_resp = respuesta.content.strip()
+                match = re.search(r'\{[^{}]+\}', texto_resp, re.DOTALL)
+                if match:
+                    datos = _json.loads(match.group())
+                    kwh_extraido    = datos.get("kwh_mes")    or kwh_extraido
+                    tarifa_extraida = datos.get("tarifa_kwh") or tarifa_extraida
+                    confianza       = datos.get("confianza",  "media")
+                    nota            = datos.get("nota",       "")
+                else:
+                    confianza, nota = "baja", "Extracción automática parcial."
+            else:
+                confianza = "alta" if (kwh_extraido and tarifa_extraida) else "media"
+                nota = "Datos extraídos del texto del PDF."
+
+            return jsonify({
+                "kwh_mes":    kwh_extraido,
+                "tarifa_kwh": tarifa_extraida,
+                "moneda":     moneda,
+                "simbolo":    simbolo,
+                "confianza":  confianza,
+                "nota":       nota,
+            })
+
+        # ── CASO IMAGEN: enviar en base64 al modelo de visión ──────
+        if not groq_api_key:
+            return jsonify({"error": "Clave API no configurada. Configura GROQ_API_KEY en el archivo .env para analizar imágenes."}), 500
+
+        with open(ruta_temp, "rb") as f:
+            imagen_b64 = base64.b64encode(f.read()).decode("utf-8")
+
+        tipo_mime = {
+            "jpg": "image/jpeg", "jpeg": "image/jpeg",
+            "png": "image/png",  "webp": "image/webp"
+        }.get(extension, "image/jpeg")
+
+        llm = ChatGroq(
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            temperature=0,
+            api_key=groq_api_key,
+        )
+
+        mensaje = HumanMessage(content=[
+            {"type": "text",      "text": prompt_extraccion},
+            {"type": "image_url", "image_url": {"url": f"data:{tipo_mime};base64,{imagen_b64}"}}
+        ])
+
+        respuesta = llm.invoke([mensaje])
+        texto = respuesta.content.strip()
+
+        match = re.search(r'\{[^{}]+\}', texto, re.DOTALL)
+        if match:
+            datos = _json.loads(match.group())
+            return jsonify({
+                "kwh_mes":    datos.get("kwh_mes"),
+                "tarifa_kwh": datos.get("tarifa_kwh"),
+                "moneda":     moneda,
+                "simbolo":    simbolo,
+                "confianza":  datos.get("confianza", "media"),
+                "nota":       datos.get("nota", ""),
+            })
+        else:
+            return jsonify({"error": "No se pudieron extraer datos de la imagen.", "texto_extraido": texto}), 422
+
+    except Exception as e:
+        return jsonify({"error": f"Error al procesar la boleta: {str(e)}"}), 500
+    finally:
+        if os.path.exists(ruta_temp):
+            os.remove(ruta_temp)
+
 
 @app.route("/api/analisis-energetico", methods=["POST"])
 def analisis_energetico_mvp():

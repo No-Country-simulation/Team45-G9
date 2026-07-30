@@ -1382,3 +1382,749 @@ select:hover {
 .scroll-panel::-webkit-scrollbar-thumb:hover {
   background: rgba(245, 197, 24, 0.65);
 }
+
+/* ═══════════════════════════════════════════════════════
+   BOLETA SECTION — Subida de boleta eléctrica
+   ═══════════════════════════════════════════════════════ */
+
+.boleta-section {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.06), rgba(245, 197, 24, 0.04));
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.boleta-section::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-volt), var(--accent-ahorro));
+  opacity: 0.7;
+}
+
+.boleta-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+}
+
+.boleta-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.boleta-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.15rem;
+}
+
+.boleta-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Drop zone */
+.boleta-dropzone {
+  position: relative;
+  border: 2px dashed rgba(56, 189, 248, 0.3);
+  border-radius: var(--radius-md);
+  background: rgba(56, 189, 248, 0.04);
+  min-height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.25s, background 0.25s, transform 0.15s;
+  overflow: hidden;
+}
+
+.boleta-dropzone:hover,
+.boleta-dropzone.drag-over {
+  border-color: var(--accent-blue);
+  background: rgba(56, 189, 248, 0.1);
+  transform: translateY(-1px);
+}
+
+.boleta-dropzone.has-file {
+  border-color: var(--accent-ahorro);
+  border-style: solid;
+  background: rgba(34, 211, 168, 0.05);
+  min-height: 180px;
+}
+
+.boleta-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.boleta-dropzone__content {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.boleta-dropzone__icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.5));
+  animation: floatDoc 3s ease-in-out infinite;
+}
+
+@keyframes floatDoc {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.boleta-dropzone__text {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.3rem;
+}
+
+.boleta-link {
+  color: var(--accent-blue);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.boleta-dropzone__hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Preview imagen */
+.boleta-preview {
+  max-height: 200px;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  display: block;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+/* Botones acciones boleta */
+.boleta-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+  align-items: center;
+}
+
+.btn--boleta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.25rem;
+  background: linear-gradient(135deg, var(--accent-blue), #0ea5e9);
+  color: #0a0f24;
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+}
+
+.btn--boleta:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.55);
+}
+
+.btn--boleta:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn--boleta.loading .btn-icon {
+  animation: spinIcon 0.8s linear infinite;
+}
+
+@keyframes spinIcon {
+  to { transform: rotate(360deg); }
+}
+
+.btn--ghost-sm {
+  padding: 0.45rem 0.9rem;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.btn--ghost-sm:hover {
+  color: var(--accent-red);
+  border-color: rgba(255, 107, 107, 0.4);
+}
+
+.btn--success-sm {
+  display: block;
+  width: 100%;
+  margin-top: 0.9rem;
+  padding: 0.6rem 1rem;
+  background: linear-gradient(135deg, var(--accent-ahorro), #10b981);
+  color: #062d1e;
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 0 12px rgba(34, 211, 168, 0.3);
+}
+
+.btn--success-sm:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 0 20px rgba(34, 211, 168, 0.5);
+}
+
+/* Resultado de extracción */
+.boleta-resultado {
+  margin-top: 1rem;
+  animation: fadeInUp 0.35s ease both;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.boleta-resultado__inner {
+  background: rgba(34, 211, 168, 0.06);
+  border: 1px solid rgba(34, 211, 168, 0.25);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+}
+
+.boleta-resultado__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(34, 211, 168, 0.1);
+}
+
+.boleta-resultado__row:last-of-type {
+  border-bottom: none;
+}
+
+.boleta-resultado__label {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.boleta-resultado__valor {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--accent-ahorro);
+}
+
+.boleta-resultado__nota {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+.boleta-resultado__confianza {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+}
+
+.boleta-resultado__confianza.alta {
+  background: rgba(34, 211, 168, 0.15);
+  color: var(--accent-ahorro);
+}
+
+.boleta-resultado__confianza.media {
+  background: rgba(245, 197, 24, 0.15);
+  color: var(--accent-volt);
+}
+
+.boleta-resultado__confianza.baja {
+  background: rgba(255, 107, 107, 0.15);
+  color: var(--accent-red);
+}
+
+/* Error */
+.boleta-error {
+  margin-top: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  color: var(--accent-red);
+  animation: fadeInUp 0.3s ease both;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SELECTOR DE TIPO DE INMUEBLE & RANGOS kWh
+   Nuevos componentes de selección directa (sin LLM)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Contenedor común de sección */
+.selector-section {
+  margin-top: 1.75rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  animation: fadeInUp 0.35s var(--ease-smooth) both;
+}
+
+.selector-section__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+.selector-section__icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.selector-section__title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.selector-section__hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ── Botones de Tipo de Inmueble ──────────────────────────── */
+.tipo-inmueble-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.tipo-inmueble-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.7rem 1.1rem;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  transition: border-color 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s var(--ease-spring);
+  min-width: 90px;
+  text-align: center;
+}
+
+.tipo-inmueble-btn__icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.tipo-inmueble-btn__label {
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.tipo-inmueble-btn:hover {
+  border-color: var(--accent-blue);
+  background: rgba(56, 189, 248, 0.08);
+  color: var(--accent-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.2);
+}
+
+.tipo-inmueble-btn--active {
+  border-color: var(--accent-volt) !important;
+  background: var(--accent-volt-dim) !important;
+  color: var(--accent-volt) !important;
+  box-shadow: 0 0 0 2px var(--accent-volt-glow), 0 4px 14px rgba(245, 197, 24, 0.25) !important;
+  transform: translateY(-2px);
+}
+
+.tipo-inmueble-btn--otro.tipo-inmueble-btn--active {
+  border-color: var(--accent-ahorro) !important;
+  background: var(--accent-ahorro-dim) !important;
+  color: var(--accent-ahorro) !important;
+  box-shadow: 0 0 0 2px var(--accent-ahorro-glow), 0 4px 14px rgba(34, 211, 168, 0.25) !important;
+}
+
+/* Campo "Otro" con animación de revelación */
+.tipo-inmueble-otro-wrap {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--bg-input);
+  border: 1px dashed var(--accent-ahorro);
+  border-radius: var(--radius-sm);
+}
+
+.tipo-inmueble-otro-input {
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--bg-panel);
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tipo-inmueble-otro-input:focus {
+  outline: none;
+  border-color: var(--accent-ahorro);
+  box-shadow: 0 0 0 3px var(--accent-ahorro-glow);
+}
+
+.tipo-inmueble-otro-hint {
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--accent-ahorro);
+  opacity: 0.85;
+}
+
+/* ── Botones de Rango kWh ─────────────────────────────────── */
+.kwh-range-btns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.65rem;
+}
+
+.kwh-range-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.85rem 0.6rem;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s var(--ease-spring);
+  line-height: 1.3;
+}
+
+.kwh-range-btn__dot {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.kwh-range-btn__label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.kwh-range-btn__desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.kwh-range-btn:hover {
+  transform: translateY(-3px);
+}
+
+/* Colores semafóricos por variante */
+.kwh-range-btn--bajo:hover,
+.kwh-range-btn--bajo.kwh-range-btn--active {
+  border-color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.25), 0 6px 18px rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+}
+
+.kwh-range-btn--medio:hover,
+.kwh-range-btn--medio.kwh-range-btn--active {
+  border-color: var(--accent-volt);
+  background: var(--accent-volt-dim);
+  box-shadow: 0 0 0 2px var(--accent-volt-glow), 0 6px 18px rgba(245, 197, 24, 0.2);
+  color: var(--accent-volt);
+}
+
+.kwh-range-btn--alto:hover,
+.kwh-range-btn--alto.kwh-range-btn--active {
+  border-color: #fb923c;
+  background: rgba(251, 146, 60, 0.1);
+  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.25), 0 6px 18px rgba(251, 146, 60, 0.2);
+  color: #fb923c;
+}
+
+.kwh-range-btn--nose:hover,
+.kwh-range-btn--nose.kwh-range-btn--active {
+  border-color: var(--accent-red);
+  background: rgba(255, 107, 107, 0.1);
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.25), 0 6px 18px rgba(255, 107, 107, 0.2);
+  color: var(--accent-red);
+}
+
+.kwh-range-btn--boleta:hover,
+.kwh-range-btn--boleta.kwh-range-btn--active {
+  border-color: var(--accent-ahorro);
+  background: var(--accent-ahorro-dim);
+  box-shadow: 0 0 0 2px var(--accent-ahorro-glow), 0 6px 18px rgba(34, 211, 168, 0.2);
+  color: var(--accent-ahorro);
+}
+
+/* Input exacto kWh */
+.kwh-exact-wrap {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--bg-input);
+  border: 1px dashed var(--accent-ahorro);
+  border-radius: var(--radius-sm);
+}
+
+.kwh-exact-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.kwh-exact-input {
+  flex: 1;
+  padding: 0.6rem 0.9rem;
+  background: var(--bg-panel);
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  max-width: 180px;
+}
+
+.kwh-exact-input:focus {
+  outline: none;
+  border-color: var(--accent-ahorro);
+  box-shadow: 0 0 0 3px var(--accent-ahorro-glow);
+}
+
+.kwh-exact-unit {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Badge de rango activo */
+.kwh-rango-badge {
+  margin-top: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 99px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--accent-volt-dim);
+  border: 1px solid var(--accent-volt-glow);
+  color: var(--accent-volt);
+  animation: fadeInUp 0.25s var(--ease-smooth) both;
+}
+
+.kwh-rango-badge--bajo   { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.3); color: #4ade80; }
+.kwh-rango-badge--medio  { background: var(--accent-volt-dim); border-color: var(--accent-volt-glow); color: var(--accent-volt); }
+.kwh-rango-badge--alto   { background: rgba(251,146,60,0.12); border-color: rgba(251,146,60,0.3); color: #fb923c; }
+.kwh-rango-badge--nose   { background: rgba(255,107,107,0.12); border-color: rgba(255,107,107,0.3); color: var(--accent-red); }
+.kwh-rango-badge--boleta { background: var(--accent-ahorro-dim); border-color: var(--accent-ahorro-glow); color: var(--accent-ahorro); }
+
+/* Animación de revelación para campos condicionales */
+@keyframes selectorReveal {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.selector-reveal {
+  animation: selectorReveal 0.35s var(--ease-spring) both;
+}
+
+/* ── Responsive ajustes ──────────────────────────────────── */
+@media (max-width: 600px) {
+  .tipo-inmueble-btns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .kwh-range-btns {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PASOS WIZARD — Ubicación & Tarifa
+   ═══════════════════════════════════════════════════════════ */
+
+.ubi-step {
+  margin-top: 1.25rem;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel-raised);
+  overflow: hidden;
+  transition: border-color 0.25s var(--ease-smooth);
+}
+
+.ubi-step:first-of-type {
+  margin-top: 0.5rem;
+}
+
+.ubi-step:not(.ubi-step--collapsed) {
+  border-color: rgba(245, 197, 24, 0.2);
+}
+
+.ubi-step__label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1.25rem;
+  cursor: default;
+  user-select: none;
+}
+
+.ubi-step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--accent-volt-dim);
+  border: 1.5px solid var(--accent-volt-glow);
+  color: var(--accent-volt);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.ubi-step--collapsed .ubi-step__num {
+  background: rgba(99, 119, 200, 0.08);
+  border-color: var(--border-soft);
+  color: var(--text-muted);
+}
+
+.ubi-step__title {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ubi-step--collapsed .ubi-step__title {
+  color: var(--text-secondary);
+}
+
+.ubi-step__toggle {
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  padding: 0.25rem 0.55rem;
+  cursor: pointer;
+  font-size: 0.65rem;
+  line-height: 1;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.ubi-step__toggle:hover {
+  background: var(--accent-volt-dim);
+  border-color: var(--accent-volt-glow);
+  color: var(--accent-volt);
+}
+
+.ubi-step__body {
+  padding: 0.25rem 1.25rem 1.25rem;
+  animation: selectorReveal 0.3s var(--ease-smooth) both;
+}
+
+.ubi-step__next {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
+.btn--step-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.35rem;
+  background: linear-gradient(135deg, var(--accent-volt), #ffaa00);
+  color: #1a1200;
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: box-shadow 0.2s, filter 0.2s, transform 0.15s var(--ease-spring);
+  box-shadow: 0 4px 14px rgba(245, 197, 24, 0.3);
+}
+
+.btn--step-next:hover {
+  filter: brightness(1.07);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 197, 24, 0.45);
+}
+
+@media (max-width: 600px) {
+  .ubi-step__body {
+    padding: 0.25rem 1rem 1rem;
+  }
+
+  .btn--step-next {
+    width: 100%;
+    justify-content: center;
+  }
+}
