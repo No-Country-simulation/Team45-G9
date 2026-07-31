@@ -29,7 +29,6 @@ obs = {
 '''
 
 #IMPORTA
-import json
 
 with open("INPUT.json", "r", encoding="utf-8") as file:
     obs = json.load(file)
