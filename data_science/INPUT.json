@@ -1,1 +1,23 @@
+{
+    'pais' : 'USA',
+    'estado' : 'NY',
+    'dormitorios' : 1,
+    'tamano': 500,
+    'ventanas': 2,
+    'agua_caliente_electrica':0,
+    'agua_caliente_tamano': 30,
+    'calefaccion_electrica' : 0,
+    'lavarropas_frecuencia' : 7,
+    'secarropas_electrico' : 0,
+    'aire_acondicionado' : 2,
+    'tv_cantidad' : 1,
+    'freezer' : 0,
+    'refrigerador': 1,
+    'luces_exterior':0,
+    'luces_interior_4_horas': 3,
+    'kwh': 2000,
+    'periodo_anual': 1
 
+
+
+}
