@@ -3,7 +3,7 @@ Permite calcular que tan eficiente es el usuario comparándolo con el gasto prom
 | Variable                | Descripción                                                                                                                                                                        | Valores                                                                                    | Tipo     | Ejemplo |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | -------- | ------- |
 | kwh                     | Consumo de electricidad de la vivienda en kilowatt-hora (kWh). Puede informarse de forma anual o mensual; el modelo ofrece mayor precisión cuando se proporciona el consumo anual. | 0–100000.             | numérico | `2000`  |            
-|periodo_anual| El consumo informado es corresponde al periodo de un año o un mes. |1:  periodo anual, 0:  periodo mensual | numérico | `1`  |  
+| periodo_anual           | Indica si el consumo informado corresponde a un período anual o mensual.                                                                                                           | 1: anual, 0: mensual.                                                                      | numérico | `1`     |
 
 # Cuestionario Base
 Permite calcular que tan eficiente es el usuario comparándolo con el gasto promedio de hogares similares y su perfil de consumo comparándolo con el resto de los hogares de la nación.
@@ -36,4 +36,4 @@ Permite calcular el consumo eléctrico de forma más precisa,  estima el porcent
 | luces_exterior          | Cantidad de lámparas o luces electricas ubicadas en el exterior de la vivienda.                                                                                                                     | 0: ninguna, 1–50: cantidad, 999: no sabe/no contesta.                                      | numérico | `0`     |
 | luces_interior_4_horas  | Cantidad de lámparas o luces electricas interiores utilizadas al menos 4 horas por día.                                                                                                     | 0–500, 999: no sabe/no contesta.                                                           | numérico | `3`     |
 
-| periodo_anual           | Indica si el consumo informado corresponde a un período anual o mensual.                                                                                                           | 1: anual, 0: mensual.                                                                      | numérico | `1`     |
+
