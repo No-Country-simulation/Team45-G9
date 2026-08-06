@@ -4,997 +4,642 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VólticvS — Asesor Energético</title>
-  <meta name="description" content="Calcula tu consumo eléctrico mensual y descubre cuánto puedes ahorrar. Asesor energético inteligente con diagnóstico por electrodoméstico.">
+  <title>VólticvS — Asesor Energético Inteligente</title>
+  <meta name="description"
+    content="Calcula tu consumo eléctrico y descubre cuánto puedes ahorrar con VólticvS, tu asesor energético inteligente.">
+
+  <!-- Fuente: Atkinson Hyperlegible -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <link rel="stylesheet" href="/static/css/style.css">
 </head>
 
-<body>
+<body id="app">
 
-  <!-- ══════════════════════════════════════════════════ -->
-  <!--  HERO HEADER                                       -->
-  <!-- ══════════════════════════════════════════════════ -->
-  <header class="hero">
-    <div class="hero__brand">
-      <span class="hero__bolt">⚡⚡</span>
-      <h1>VólticvS</h1>
-      <span class="hero__bolt">⚡⚡</span>
-    </div>
-    <p class="hero__tagline">Soy tu asesor energético. <br>⚡ Cuéntame qué tienes conectado y te digo cuánto gastas
-      <br>y cuánto puedes ahorrar.
-    </p>
-
-    <div class="meter" aria-live="polite">
-      <span class="meter__value" id="meterValue">000.0</span>
-      <span class="meter__unit">kWh / mes</span>
+  <!-- ════ HEADER ════ -->
+  <header class="header" id="appHeader">
+    <div class="header__inner">
+      <div class="header__brand">
+        <img src="/static/img/icono_2.png" alt="VólticvS Logo" class="header-logo-img header__logo" id="headerLogo">
+        <h1 class="header__title">VólticvS</h1>
+      </div>
+      <p class="header__tagline">Tu asesor energético inteligente</p>
     </div>
   </header>
 
-  <!-- ══════════════════════════════════════════════════ -->
-  <!--  MAIN LAYOUT                                       -->
-  <!-- ══════════════════════════════════════════════════ -->
-  <main class="layout layout--tabbed">
-    <form id="formularioEnergia">
+  <!-- ════ MAIN LAYOUT ════ -->
+  <main class="main-layout">
 
-      <!-- ─── TAB NAVIGATION BAR ─────────────────────── -->
-      <nav class="tabs-nav" role="tablist" aria-label="Categorías de electrodomésticos">
-        <button type="button" role="tab" class="tab-btn tab-btn--active" data-tab="ubicacion"
-          id="tab-btn-ubicacion" aria-controls="tab-ubicacion" aria-selected="true">
-          <span class="tab-btn__icon">📍</span>
-          <span class="tab-btn__label">Ubicación</span>
-          <span class="tab-btn__badge" id="badge-ubicacion" hidden>0</span>
-        </button>
-        <button type="button" role="tab" class="tab-btn" data-tab="linea-blanca"
-          id="tab-btn-linea-blanca" aria-controls="tab-linea-blanca" aria-selected="false">
-          <span class="tab-btn__icon">🔌</span>
-          <span class="tab-btn__label">Línea Blanca</span>
-          <span class="tab-btn__badge" id="badge-linea-blanca" hidden>0</span>
-        </button>
-        <button type="button" role="tab" class="tab-btn" data-tab="entretenimiento"
-          id="tab-btn-entretenimiento" aria-controls="tab-entretenimiento" aria-selected="false">
-          <span class="tab-btn__icon">📺</span>
-          <span class="tab-btn__label">Entret. & Oficina</span>
-          <span class="tab-btn__badge" id="badge-entretenimiento" hidden>0</span>
-        </button>
-        <button type="button" role="tab" class="tab-btn" data-tab="hogar"
-          id="tab-btn-hogar" aria-controls="tab-hogar" aria-selected="false">
-          <span class="tab-btn__icon">🏠</span>
-          <span class="tab-btn__label">Hogar</span>
-          <span class="tab-btn__badge" id="badge-hogar" hidden>0</span>
-        </button>
-        <button type="button" role="tab" class="tab-btn" data-tab="iluminacion"
-          id="tab-btn-iluminacion" aria-controls="tab-iluminacion" aria-selected="false">
-          <span class="tab-btn__icon">💡</span>
-          <span class="tab-btn__label">Ilum. & CCTV</span>
-          <span class="tab-btn__badge" id="badge-iluminacion" hidden>0</span>
-        </button>
-        <button type="button" role="tab" class="tab-btn" data-tab="personalizados"
-          id="tab-btn-personalizados" aria-controls="tab-personalizados" aria-selected="false">
-          <span class="tab-btn__icon">➕</span>
-          <span class="tab-btn__label">Mis Artefactos</span>
-          <span class="tab-btn__badge" id="badge-personalizados" hidden>0</span>
-        </button>
-        <!-- Active indicator bar -->
-        <span class="tabs-nav__indicator" aria-hidden="true"></span>
-      </nav>
+    <!-- ── PANEL LATERAL: VOLTI ── -->
+    <aside class="volti-panel no-print" id="voltiPanel">
 
-      <!-- ─── TAB PANELS WRAPPER ─────────────────────── -->
-      <div class="tabs-panels">
+      <!-- Marco enmascarador + avatar PNG individual -->
+      <div class="volti-frame" id="voltiFrame">
+        <img src="/static/img/volti/impatado.png" alt="Volti — Asesor Energético" class="volti-avatar-img"
+          id="voltiAvatarImg">
+      </div>
 
-        <!-- ══ TAB 1 · UBICACIÓN & TARIFA ═════════════ -->
-        <section class="tab-panel tab-panel--active card" id="tab-ubicacion"
-          role="tabpanel" aria-labelledby="tab-btn-ubicacion">
-          <div class="tab-panel__header">
-            <span class="tab-panel__icon">📍</span>
+      <!-- Burbuja de diálogo -->
+      <div class="volti-speech" id="voltiSpeech">
+        <div class="volti-bubble" id="voltiBubble">
+          <span class="volti-bubble__text" id="voltiBubbleText">
+            ¡Hola! Soy <strong>Volti</strong>, tu asesor energético. Te guiaré paso a paso para calcular tu consumo.
+          </span>
+        </div>
+        <div class="volti-mood" id="voltiMood">Saludando</div>
+      </div>
+
+    </aside>
+
+    <!-- ── WIZARD ── -->
+    <section class="wizard" id="wizardContainer">
+
+      <!-- Barra de progreso -->
+      <div class="progress-bar no-print" id="progressBar">
+        <div class="progress-bar__track">
+          <div class="progress-bar__fill" id="progressFill"></div>
+        </div>
+        <div class="progress-bar__steps">
+          <button class="progress-step progress-step--active" data-step="1" id="progStep1">
+            <span class="progress-step__circle">1</span>
+            <span class="progress-step__label">Ubicación</span>
+          </button>
+          <button class="progress-step" data-step="2" id="progStep2">
+            <span class="progress-step__circle">2</span>
+            <span class="progress-step__label">Vivienda</span>
+          </button>
+          <button class="progress-step" data-step="3" id="progStep3">
+            <span class="progress-step__circle">3</span>
+            <span class="progress-step__label">Equipamiento</span>
+          </button>
+          <button class="progress-step" data-step="4" id="progStep4">
+            <span class="progress-step__circle">4</span>
+            <span class="progress-step__label">Rutinas</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ════ PASO 1: Ubicación & Tarifa ════ -->
+      <div class="wizard-step wizard-step--active" id="step1" data-step="1">
+        <div class="step-card">
+          <div class="step-card__header">
+            <span class="step-icon-badge">
+              <i data-lucide="map-pin"></i>
+            </span>
             <div>
-              <h2 class="card__title">Ubicación & Tarifa</h2>
-              <p class="card__hint">Indica dónde vives y cómo prefieres ingresar tu consumo.</p>
+              <h2 class="step-card__title">Ubicación &amp; Tarifa</h2>
+              <p class="step-card__desc">Indica dónde resides e ingresa tu consumo si lo conoces.</p>
+            </div>
+            <span class="step-card__badge">Paso 1 de 4</span>
+          </div>
+
+          <div class="step-card__body">
+
+            <div class="form-group">
+              <label class="form-label" for="pais">
+                <span class="label-badge"><i data-lucide="globe"></i></span>
+                País
+              </label>
+              <select class="form-select" id="pais" required>
+                <option value="">Cargando países…</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="selectProvincia">
+                <span class="label-badge"><i data-lucide="map"></i></span>
+                Provincia / Estado / Región
+              </label>
+              <input type="text" class="form-input" id="selectProvincia"
+                placeholder="Ej: Santiago, Buenos Aires, CDMX…">
+              <span class="form-hint">Ayuda a estimar variaciones de clima local.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="inputConsumo">
+                <span class="label-badge"><i data-lucide="zap"></i></span>
+                Consumo eléctrico mensual (kWh)
+              </label>
+              <input type="number" class="form-input" id="inputConsumo" min="0"
+                placeholder="Ej: 250  —  déjalo vacío para que Volti lo calcule">
+            </div>
+
+            <div class="form-group">
+              <div class="toggle-row">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="flagAnual" checked>
+                  <span class="toggle-switch__slider"></span>
+                </label>
+                <span class="toggle-row__label" id="flagAnualLabel">El consumo es anual</span>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="step-card__nav no-print">
+            <div></div>
+            <button class="btn btn--primary" id="btnNext1" type="button">
+              Siguiente <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PASO 2: Mi Vivienda ════ -->
+      <div class="wizard-step" id="step2" data-step="2">
+        <div class="step-card">
+          <div class="step-card__header">
+            <span class="step-icon-badge">
+              <i data-lucide="home"></i>
+            </span>
+            <div>
+              <h2 class="step-card__title">Mi Vivienda</h2>
+              <p class="step-card__desc">Selecciona tu tipo de hogar y estructura familiar.</p>
+            </div>
+            <span class="step-card__badge">Paso 2 de 4</span>
+          </div>
+
+          <div class="step-card__body">
+
+            <!-- Tarjetas Pixel Art — ÚNICO uso de imagen en formulario -->
+            <div class="form-group">
+              <label class="form-label">Tipo de Inmueble</label>
+              <div class="vivienda-grid">
+                <div class="vivienda-card vivienda-card--active" data-value="Casa" id="cardCasa">
+                  <img src="/static/img/casa.png" alt="Casa" class="vivienda-card__img">
+                  <div class="vivienda-card__title">Casa</div>
+                </div>
+                <div class="vivienda-card" data-value="Departamento" id="cardDpto">
+                  <img src="/static/img/casa.png" alt="Departamento / Piso" class="vivienda-card__img">
+                  <div class="vivienda-card__title">Departamento / Piso</div>
+                </div>
+                <div class="vivienda-card" data-value="Motorhome" id="cardRV">
+                  <img src="/static/img/vivienda_motorhome.jpg" alt="Casilla / Casa Rodante / RV" class="vivienda-card__img">
+                  <div class="vivienda-card__title">Casilla / Casa Rodante / RV</div>
+                </div>
+                <div class="vivienda-card" data-value="Otro" id="cardOtro">
+                  <img src="/static/img/vivienda_casas.jpg" alt="Otro" class="vivienda-card__img">
+                  <div class="vivienda-card__title">Otro</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-grid form-grid--2col">
+
+              <div class="form-group">
+                <label class="form-label" for="inputDormitorios">
+                  <span class="label-badge label-badge--blue"><i data-lucide="bed-double"></i></span>
+                  Dormitorios
+                </label>
+                <div class="counter-input">
+                  <button type="button" class="counter-btn counter-btn--minus" data-target="inputDormitorios">−</button>
+                  <input type="number" class="form-input counter-value" id="inputDormitorios" min="0" value="0">
+                  <button type="button" class="counter-btn counter-btn--plus" data-target="inputDormitorios">+</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="inputVentanas">
+                  <span class="label-badge label-badge--blue"><i data-lucide="square"></i></span>
+                  Ventanas
+                </label>
+                <div class="counter-input">
+                  <button type="button" class="counter-btn counter-btn--minus" data-target="inputVentanas">−</button>
+                  <input type="number" class="form-input counter-value" id="inputVentanas" min="0" value="0">
+                  <button type="button" class="counter-btn counter-btn--plus" data-target="inputVentanas">+</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="inputMayores">
+                  <span class="label-badge"><i data-lucide="user"></i></span>
+                  Adultos
+                </label>
+                <div class="counter-input">
+                  <button type="button" class="counter-btn counter-btn--minus" data-target="inputMayores">−</button>
+                  <input type="number" class="form-input counter-value" id="inputMayores" min="0" value="0">
+                  <button type="button" class="counter-btn counter-btn--plus" data-target="inputMayores">+</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="inputMenores">
+                  <span class="label-badge"><i data-lucide="baby"></i></span>
+                  Menores
+                </label>
+                <div class="counter-input">
+                  <button type="button" class="counter-btn counter-btn--minus" data-target="inputMenores">−</button>
+                  <input type="number" class="form-input counter-value" id="inputMenores" min="0" value="0">
+                  <button type="button" class="counter-btn counter-btn--plus" data-target="inputMenores">+</button>
+                </div>
+              </div>
+
             </div>
           </div>
 
-          <!-- ── PASO 1: ¿DÓNDE VIVES? ──────────────────────── -->
-          <div class="ubi-step" id="ubiStep1">
-            <div class="ubi-step__label">
-              <span class="ubi-step__num">1</span>
-              <span class="ubi-step__title">¿Dónde vives?</span>
-              <button type="button" class="ubi-step__toggle" id="toggleStep1" aria-expanded="true" aria-controls="ubiStep1Body">
-                <span class="ubi-step__toggle-icon">▲</span>
+          <div class="step-card__nav no-print">
+            <button class="btn btn--secondary" id="btnPrev2" type="button">
+              <i data-lucide="arrow-left"></i> Anterior
+            </button>
+            <button class="btn btn--primary" id="btnNext2" type="button">
+              Siguiente <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PASO 3: Equipamiento ════ -->
+      <div class="wizard-step" id="step3" data-step="3">
+        <div class="step-card">
+          <div class="step-card__header">
+            <span class="step-icon-badge">
+              <i data-lucide="plug"></i>
+            </span>
+            <div>
+              <h2 class="step-card__title">Equipamiento Principal</h2>
+              <p class="step-card__desc">Indica cuáles de estos artefactos utilizas en tu hogar.</p>
+            </div>
+            <span class="step-card__badge">Paso 3 de 4</span>
+          </div>
+
+          <div class="step-card__body">
+
+            <div class="equip-item" id="equipAC">
+              <div class="equip-item__info">
+                <span class="equip-badge equip-badge--azul"><i data-lucide="wind"></i></span>
+                <div>
+                  <span class="equip-item__name">Aire Acondicionado / Climatización</span>
+                  <span class="equip-item__desc">Equipos de refrigeración o calefacción eléctrica</span>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="aireAcondicionado" class="equip-toggle">
+                <span class="toggle-switch__slider"></span>
+              </label>
+            </div>
+
+            <div class="equip-item" id="equipCalef">
+              <div class="equip-item__info">
+                <span class="equip-badge equip-badge--naranja"><i data-lucide="flame"></i></span>
+                <div>
+                  <span class="equip-item__name">Calefacción Eléctrica</span>
+                  <span class="equip-item__desc">Estufas, radiadores, calefactores</span>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="calefaccionElectrica" class="equip-toggle">
+                <span class="toggle-switch__slider"></span>
+              </label>
+            </div>
+
+            <div class="equip-item" id="equipAgua">
+              <div class="equip-item__info">
+                <span class="equip-badge equip-badge--verde"><i data-lucide="droplets"></i></span>
+                <div>
+                  <span class="equip-item__name">Calentador de Agua / Termotanque (Eléctrico)</span>
+                  <span class="equip-item__desc">Uso de electricidad para calentar agua</span>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="aguaCalienteElectrica" class="equip-toggle">
+                <span class="toggle-switch__slider"></span>
+              </label>
+            </div>
+
+            <div class="equip-item" id="equipSeca">
+              <div class="equip-item__info">
+                <span class="equip-badge equip-badge--azul"><i data-lucide="rotate-ccw"></i></span>
+                <div>
+                  <span class="equip-item__name">Secarropas Eléctrico</span>
+                  <span class="equip-item__desc">Secado de prendas</span>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="secarropasElectrico" class="equip-toggle">
+                <span class="toggle-switch__slider"></span>
+              </label>
+            </div>
+
+            <div class="equip-item" id="equipHorno">
+              <div class="equip-item__info">
+                <span class="equip-badge equip-badge--verde"><i data-lucide="chef-hat"></i></span>
+                <div>
+                  <span class="equip-item__name">Horno o Anafe Eléctrico</span>
+                  <span class="equip-item__desc">Cocción eléctrica</span>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hornoElectrico" class="equip-toggle">
+                <span class="toggle-switch__slider"></span>
+              </label>
+            </div>
+
+          </div>
+
+          <div class="step-card__nav no-print">
+            <button class="btn btn--secondary" id="btnPrev3" type="button">
+              <i data-lucide="arrow-left"></i> Anterior
+            </button>
+            <button class="btn btn--primary" id="btnNext3" type="button">
+              Siguiente <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PASO 4: Rutinas ════ -->
+      <div class="wizard-step" id="step4" data-step="4">
+        <div class="step-card">
+          <div class="step-card__header">
+            <span class="step-icon-badge">
+              <i data-lucide="clock"></i>
+            </span>
+            <div>
+              <h2 class="step-card__title">Electrodomésticos &amp; Rutinas</h2>
+              <p class="step-card__desc">Indica la frecuencia de uso diario y semanal.</p>
+            </div>
+            <span class="step-card__badge">Paso 4 de 4</span>
+          </div>
+
+          <div class="step-card__body">
+            <div class="form-grid form-grid--2col">
+
+              <div class="form-group">
+                <label class="form-label" for="lavadoFrecuencia">
+                  <span class="label-badge"><i data-lucide="shirt"></i></span>
+                  Lavados semanales
+                </label>
+                <div class="counter-input">
+                  <button type="button" class="counter-btn counter-btn--minus" data-target="lavadoFrecuencia">−</button>
+                  <input type="number" class="form-input counter-value" id="lavadoFrecuencia" min="0" value="0">
+                  <button type="button" class="counter-btn counter-btn--plus" data-target="lavadoFrecuencia">+</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="refrigerador">
+                  <span class="label-badge label-badge--blue"><i data-lucide="refrigerator"></i></span>
+                  Refrigerador / Heladera
+                </label>
+                <div class="counter-input">
+                  <button type="button" class="counter-btn counter-btn--minus" data-target="refrigerador">−</button>
+                  <input type="number" class="form-input counter-value" id="refrigerador" min="0" value="0">
+                  <button type="button" class="counter-btn counter-btn--plus" data-target="refrigerador">+</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="freezer">
+                  <span class="label-badge label-badge--blue"><i data-lucide="snowflake"></i></span>
+                  Freezer independiente
+                </label>
+                <div class="counter-input">
+                  <button type="button" class="counter-btn counter-btn--minus" data-target="freezer">−</button>
+                  <input type="number" class="form-input counter-value" id="freezer" min="0" value="0">
+                  <button type="button" class="counter-btn counter-btn--plus" data-target="freezer">+</button>
+                </div>
+                <span class="form-hint" style="font-size: 0.75rem; color: #6B7280; margin-top: 0.25rem; display: block;">Congelador separado del refrigerador</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="tv">
+                  <span class="label-badge label-badge--blue"><i data-lucide="tv-2"></i></span>
+                  Televisores
+                </label>
+                <div class="counter-input">
+                  <button type="button" class="counter-btn counter-btn--minus" data-target="tv">−</button>
+                  <input type="number" class="form-input counter-value" id="tv" min="0" value="0">
+                  <button type="button" class="counter-btn counter-btn--plus" data-target="tv">+</button>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+              <label class="form-label" for="tvFrecuencia">
+                <span class="label-badge label-badge--blue"><i data-lucide="timer"></i></span>
+                Horas promedio de uso diario de TV
+              </label>
+              <input type="number" class="form-input" id="tvFrecuencia" min="0" max="24" value="0" step="0.5" placeholder="Ej: 4">
+              <span class="form-hint">Ingresa las horas de uso al día por televisor.</span>
+            </div>
+          </div>
+
+          <div class="step-card__nav no-print">
+            <button class="btn btn--secondary" id="btnPrev4" type="button">
+              <i data-lucide="arrow-left"></i> Anterior
+            </button>
+            <button class="btn btn--submit" id="btnSubmit" type="button">
+              <i data-lucide="bar-chart-2"></i>
+              Calcular Consumo y Ahorro
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ RESULTADOS ════ -->
+      <div class="results-section" id="resultados" hidden>
+        <div class="step-card">
+          <div class="step-card__header">
+            <span class="step-icon-badge">
+              <i data-lucide="bar-chart-2"></i>
+            </span>
+            <div>
+              <h2 class="step-card__title">Análisis de Consumo</h2>
+              <p class="step-card__desc">Proyección estimada por Volti para tu hogar</p>
+            </div>
+          </div>
+
+          <div class="step-card__body">
+
+            <!-- Métricas destacadas (reemplaza el párrafo de narrativa) -->
+            <div class="results-metrics" id="resultados-metricas">
+              <div class="results-metric-item">
+                <span class="results-metric-icon">
+                  <img src="/static/img/ampolleta_led.png" alt="Consumo" class="results-metric-img">
+                </span>
+                <div class="results-metric-body">
+                  <span class="results-metric-label">Consumo Mensual</span>
+                  <span class="results-metric-value" id="metricaKwh">— kWh</span>
+                </div>
+              </div>
+              <div class="results-metric-item">
+                <span class="results-metric-icon">
+                  <img src="/static/img/bateria.png" alt="Ahorro" class="results-metric-img">
+                </span>
+                <div class="results-metric-body">
+                  <span class="results-metric-label">Ahorro Estimado a 1 año</span>
+                  <span class="results-metric-value results-metric-value--green" id="metricaAhorro">—</span>
+                </div>
+              </div>
+              <div class="results-metric-item">
+                <span class="results-metric-icon">
+                  <img src="/static/img/checklist.png" alt="Acción" class="results-metric-img">
+                </span>
+                <div class="results-metric-body">
+                  <span class="results-metric-label">Acción Principal</span>
+                  <span class="results-metric-value results-metric-value--action" id="metricaAccion">—</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Narrativa del LLM: oculta en pantalla, disponible para la factura -->
+            <div id="narrativa" hidden aria-hidden="true"></div>
+
+
+            <div class="results-grid">
+              <div class="results-card">
+                <span class="results-card__label">Consumo Mensual</span>
+                <div class="results-card__value" id="totalKwh">— kWh</div>
+              </div>
+              <div class="results-card">
+                <span class="results-card__label">Costo Estimado</span>
+                <div class="results-card__value" id="totalClp">—</div>
+              </div>
+              <div class="results-card results-card--success">
+                <span class="results-card__label">Ahorro Potencial</span>
+                <div class="results-card__value results-card__value--success" id="ahorroClp">—</div>
+              </div>
+            </div>
+
+            <h3 style="color:var(--azul-oscuro);margin:1.4rem 0 0.6rem;font-size:0.95rem;display:flex;align-items:center;gap:0.4rem;">
+              <img src="/static/img/ampolleta_cfl.png" alt="Recomendaciones" style="width:22px;height:22px;image-rendering:pixelated;">
+              Recomendaciones de Volti
+            </h3>
+            <ul class="results-recs" id="listaRecomendaciones"></ul>
+
+            <div class="no-print" style="margin-top:1.75rem;display:flex;gap:0.85rem;flex-wrap:wrap;">
+              <button class="btn btn--primary" id="btnNuevoCalculo" type="button">
+                <i data-lucide="refresh-cw"></i> Nuevo Cálculo
+              </button>
+              <button class="btn btn--tech" id="btnImprimir" type="button">
+                <i data-lucide="printer"></i> Imprimir Reporte
               </button>
             </div>
-
-            <div class="ubi-step__body" id="ubiStep1Body">
-              <!-- País + Provincia -->
-              <div class="tab-panel__grid tab-panel__grid--2col">
-                <div class="field-group">
-                  <label class="field-label" for="selectPais">🌎 País</label>
-                  <select id="selectPais">
-                    <option value="">Cargando países…</option>
-                  </select>
-                  <p class="card__hint" id="fuenteTarifa"></p>
-                </div>
-
-                <div class="field-group">
-                  <label class="field-label" for="selectProvincia">🗺️ Provincia / Estado / Región</label>
-                  <input type="text" id="selectProvincia" placeholder="Ej: Santiago, Buenos Aires, CDMX…" autocomplete="off" maxlength="80">
-                  <p class="card__hint">Ayuda a estimar el clima local.</p>
-                </div>
-              </div>
-
-              <!-- Tarifa kWh -->
-              <div class="field-group" style="margin-top:1rem;">
-                <label class="field-label" for="tarifaClp">⚡ Valor del kWh <span id="labelMoneda" style="font-family:var(--font-mono);font-size:0.78rem;font-weight:400;color:var(--text-muted);"></span></label>
-                <input type="number" min="0.001" step="0.001" value="150" id="tarifaClp" style="width:11rem;">
-                <p class="card__hint" id="hintTarifa">Cargando tarifa referencial…</p>
-              </div>
-
-              <!-- Tipo de inmueble -->
-              <div class="selector-section" id="selectorTipoInmueble" style="margin-top:1.25rem;">
-                <div class="selector-section__header">
-                  <span class="selector-section__icon">🏠</span>
-                  <div>
-                    <h3 class="selector-section__title">¿Qué tipo de vivienda tienes?</h3>
-                  </div>
-                </div>
-                <div class="tipo-inmueble-btns" role="group" aria-label="Tipo de inmueble">
-                  <button type="button" class="tipo-inmueble-btn tipo-inmueble-btn--active" data-valor="Casa" id="tipoBtn-casa">
-                    <span class="tipo-inmueble-btn__icon">🏠</span>
-                    <span class="tipo-inmueble-btn__label">Casa aislada</span>
-                  </button>
-                  <button type="button" class="tipo-inmueble-btn" data-valor="Casa pareada" id="tipoBtn-pareada">
-                    <span class="tipo-inmueble-btn__icon">🏘️</span>
-                    <span class="tipo-inmueble-btn__label">Casa pareada</span>
-                  </button>
-                  <button type="button" class="tipo-inmueble-btn" data-valor="Departamento" id="tipoBtn-depto">
-                    <span class="tipo-inmueble-btn__icon">🏢</span>
-                    <span class="tipo-inmueble-btn__label">Departamento</span>
-                  </button>
-                  <button type="button" class="tipo-inmueble-btn" data-valor="Casa móvil" id="tipoBtn-movil">
-                    <span class="tipo-inmueble-btn__icon">🚐</span>
-                    <span class="tipo-inmueble-btn__label">Casa móvil</span>
-                  </button>
-                  <button type="button" class="tipo-inmueble-btn tipo-inmueble-btn--otro" data-valor="otro" id="tipoBtn-otro">
-                    <span class="tipo-inmueble-btn__icon">✏️</span>
-                    <span class="tipo-inmueble-btn__label">Otro…</span>
-                  </button>
-                </div>
-                <div class="tipo-inmueble-otro-wrap" id="tipoOtroWrap" hidden>
-                  <label class="field-label" for="tipoOtroInput">Describe tu tipo de vivienda</label>
-                  <input type="text" id="tipoOtroInput" class="tipo-inmueble-otro-input"
-                    placeholder="Ej: duplex con jardín, casa en condominio, rancho…"
-                    autocomplete="off" maxlength="120">
-                </div>
-              </div>
-
-              <!-- Botón avanzar -->
-              <div class="ubi-step__next">
-                <button type="button" class="btn btn--step-next" id="btnIrPaso2">
-                  Siguiente — ¿Cómo ingreso mi consumo? →
-                </button>
-              </div>
-            </div>
           </div>
-
-          <!-- ── PASO 2: ¿CÓMO QUIERES INGRESAR TU CONSUMO? ── -->
-          <div class="ubi-step ubi-step--collapsed" id="ubiStep2">
-            <div class="ubi-step__label">
-              <span class="ubi-step__num">2</span>
-              <span class="ubi-step__title">¿Cómo quieres ingresar tu consumo?</span>
-              <button type="button" class="ubi-step__toggle" id="toggleStep2" aria-expanded="false" aria-controls="ubiStep2Body">
-                <span class="ubi-step__toggle-icon">▼</span>
-              </button>
-            </div>
-
-            <div class="ubi-step__body" id="ubiStep2Body" hidden>
-              <!-- Rangos kWh -->
-              <div class="selector-section" id="selectorKwh" style="margin-top:0;border:none;padding:0;background:transparent;">
-                <div class="selector-section__header">
-                  <span class="selector-section__icon">⚡</span>
-                  <div>
-                    <h3 class="selector-section__title">Selecciona un rango o ingresa el valor exacto</h3>
-                    <p class="selector-section__hint">Si marcas artefactos en las otras pestañas, lo calculamos automáticamente.</p>
-                  </div>
-                </div>
-                <div class="kwh-range-btns" role="group" aria-label="Rango de consumo kWh">
-                  <button type="button" class="kwh-range-btn kwh-range-btn--bajo" data-kwh="100" data-rango="bajo" id="kwhBtn-bajo">
-                    <span class="kwh-range-btn__dot">🟢</span>
-                    <span class="kwh-range-btn__label">Bajo</span>
-                    <span class="kwh-range-btn__desc">Menos de 150 kWh/mes<br><small>Depto. o consumo mínimo</small></span>
-                  </button>
-                  <button type="button" class="kwh-range-btn kwh-range-btn--medio" data-kwh="225" data-rango="medio" id="kwhBtn-medio">
-                    <span class="kwh-range-btn__dot">🟡</span>
-                    <span class="kwh-range-btn__label">Medio</span>
-                    <span class="kwh-range-btn__desc">150–300 kWh/mes<br><small>Casa promedio</small></span>
-                  </button>
-                  <button type="button" class="kwh-range-btn kwh-range-btn--alto" data-kwh="400" data-rango="alto" id="kwhBtn-alto">
-                    <span class="kwh-range-btn__dot">🟠</span>
-                    <span class="kwh-range-btn__label">Alto</span>
-                    <span class="kwh-range-btn__desc">300–500 kWh/mes<br><small>Casa grande / elevado</small></span>
-                  </button>
-                  <button type="button" class="kwh-range-btn kwh-range-btn--nose" data-kwh="250" data-rango="nose" id="kwhBtn-nose">
-                    <span class="kwh-range-btn__dot">🔴</span>
-                    <span class="kwh-range-btn__label">No lo sé</span>
-                    <span class="kwh-range-btn__desc">Usamos 250 kWh<br><small>Promedio estándar</small></span>
-                  </button>
-                  <button type="button" class="kwh-range-btn kwh-range-btn--boleta" data-kwh="0" data-rango="boleta" id="kwhBtn-boleta">
-                    <span class="kwh-range-btn__dot">✏️</span>
-                    <span class="kwh-range-btn__label">Tengo mi boleta</span>
-                    <span class="kwh-range-btn__desc">Ingresar número exacto</span>
-                  </button>
-                </div>
-                <div class="kwh-exact-wrap" id="kwhExactWrap" hidden>
-                  <label class="field-label" for="kwhExactoInput">Consumo de tu boleta (kWh/mes)</label>
-                  <div class="kwh-exact-input-row">
-                    <input type="number" id="kwhExactoInput" class="kwh-exact-input"
-                      min="1" max="9999" step="1" placeholder="Ej: 245">
-                    <span class="kwh-exact-unit">kWh/mes</span>
-                  </div>
-                </div>
-                <div class="kwh-rango-badge" id="kwhRangoBadge" hidden>
-                  <span id="kwhRangoBadgeText"></span>
-                </div>
-              </div>
-
-              <!-- Boleta eléctrica -->
-              <div class="boleta-section" style="margin-top:1.25rem;">
-                <div class="boleta-header">
-                  <span class="boleta-icon">🧾</span>
-                  <div>
-                    <h3 class="boleta-title">¿Tienes tu boleta a mano?</h3>
-                    <p class="boleta-subtitle">Súbela y extraemos el consumo y tarifa automáticamente.</p>
-                  </div>
-                </div>
-
-                <div class="boleta-dropzone" id="boletaDropzone">
-                  <input type="file" id="boletaFile" accept="image/*,.pdf" class="boleta-input" aria-label="Subir boleta eléctrica">
-                  <div class="boleta-dropzone__content" id="boletaDropContent">
-                    <div class="boleta-dropzone__icon">📄</div>
-                    <p class="boleta-dropzone__text">Arrastra tu boleta aquí o <span class="boleta-link">selecciona un archivo</span></p>
-                    <p class="boleta-dropzone__hint">PNG, JPG, WEBP o PDF · Máx. 10 MB</p>
-                  </div>
-                  <img id="boletaPreview" class="boleta-preview" alt="Vista previa de la boleta" hidden>
-                </div>
-
-                <div class="boleta-actions" id="boletaActions" hidden>
-                  <button type="button" id="btnAnalizarBoleta" class="btn btn--boleta">
-                    <span class="btn-icon">🔍</span> Analizar boleta
-                  </button>
-                  <button type="button" id="btnQuitarBoleta" class="btn btn--ghost-sm">✕ Quitar</button>
-                </div>
-
-                <div class="boleta-resultado" id="boletaResultado" hidden>
-                  <div class="boleta-resultado__inner">
-                    <div class="boleta-resultado__row" id="boletaKwhRow" hidden>
-                      <span class="boleta-resultado__label">⚡ Consumo detectado</span>
-                      <span class="boleta-resultado__valor" id="boletaKwhValor">—</span>
-                    </div>
-                    <div class="boleta-resultado__row" id="boletaTarifaRow" hidden>
-                      <span class="boleta-resultado__label">💰 Tarifa por kWh</span>
-                      <span class="boleta-resultado__valor" id="boletaTarifaValor">—</span>
-                    </div>
-                    <div class="boleta-resultado__nota" id="boletaNota"></div>
-                    <div class="boleta-resultado__confianza" id="boletaConfianza"></div>
-                    <button type="button" id="btnAplicarBoleta" class="btn btn--success-sm" hidden>
-                      ✅ Aplicar estos valores al cálculo
-                    </button>
-                  </div>
-                </div>
-
-                <div class="boleta-error" id="boletaError" hidden></div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ══ TAB 2 · LÍNEA BLANCA & COCINA ══════════ -->
-        <section class="tab-panel card" id="tab-linea-blanca"
-          role="tabpanel" aria-labelledby="tab-btn-linea-blanca" hidden>
-          <div class="tab-panel__header">
-            <span class="tab-panel__icon">🔌</span>
-            <div>
-              <h2 class="card__title">Línea Blanca & Cocina</h2>
-              <p class="card__hint">Marca lo que tienes. Para los de uso continuo (24/7) solo indica cantidad.</p>
-            </div>
-          </div>
-
-          <div class="checklist checklist--grid">
-
-            <!-- Refrigerador — fijo 24/7 -->
-            <div class="item item--fijo" data-clave="refrigerador">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Refrigerador <span
-                  class="item__watts">(~150W, 24/7)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <input type="hidden" class="horas" value="24">
-              </div>
-            </div>
-
-            <!-- Congeladora — fijo 24/7 -->
-            <div class="item item--fijo" data-clave="congeladora">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Congeladora / freezer <span
-                  class="item__watts">(~200W, 24/7)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <input type="hidden" class="horas" value="24">
-              </div>
-            </div>
-
-            <!-- Lavadora -->
-            <div class="item item--con-horas" data-clave="lavadora">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Lavadora de ropa <span
-                  class="item__watts">(~500W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.1" value="1" class="horas"></label>
-                <label>Veces por semana <input type="number" min="1" max="7" value="3" class="veces-semana"></label>
-              </div>
-            </div>
-
-            <!-- Secadora -->
-            <div class="item item--con-horas" data-clave="secadora_ropa">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Secadora de ropa <span
-                  class="item__watts">(~2500W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.1" value="0.5"
-                    class="horas"></label>
-                <label>Veces por semana <input type="number" min="1" max="7" value="2" class="veces-semana"></label>
-              </div>
-            </div>
-
-            <!-- Horno eléctrico -->
-            <div class="item item--con-horas" data-clave="horno_electrico">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Horno eléctrico <span
-                  class="item__watts">(~2000W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.1" value="0.5"
-                    class="horas"></label>
-                <label>Veces por semana <input type="number" min="1" max="7" value="3" class="veces-semana"></label>
-              </div>
-            </div>
-
-            <!-- Microondas -->
-            <div class="item item--con-horas" data-clave="microondas">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Microondas <span
-                  class="item__watts">(~1200W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.1" value="0.3"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <!-- Olla arrocera -->
-            <div class="item item--con-horas" data-clave="olla_arrocera">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Olla arrocera <span
-                  class="item__watts">(~700W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.1" value="0.5"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <!-- Cafetera -->
-            <div class="item item--con-horas" data-clave="cafetera_electrica">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Cafetera eléctrica <span
-                  class="item__watts">(~800W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.1" value="0.3"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <!-- Licuadora -->
-            <div class="item item--con-horas" data-clave="licuadora">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Licuadora <span
-                  class="item__watts">(~300W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.05" value="0.15"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <!-- Tostadora -->
-            <div class="item item--con-horas" data-clave="tostadora">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Tostadora <span
-                  class="item__watts">(~800W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.05" value="0.1"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <!-- Campana extractora -->
-            <div class="item item--con-horas" data-clave="campana_extractora">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Campana extractora <span
-                  class="item__watts">(~120W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.5" value="1" class="horas"></label>
-              </div>
-            </div>
-
-            <!-- Cuchillo eléctrico -->
-            <div class="item item--con-horas" data-clave="cuchillo_electrico">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Cuchillo eléctrico <span
-                  class="item__watts">(~100W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.05" value="0.1"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <!-- Exprimidor -->
-            <div class="item item--con-horas" data-clave="exprimidor_electrico">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Exprimidor eléctrico <span
-                  class="item__watts">(~150W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.05" value="0.1"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <!-- Abrelatas -->
-            <div class="item item--con-horas" data-clave="abrelatas_electrico">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Abrelatas eléctrico <span
-                  class="item__watts">(~60W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.05" value="0.05"
-                    class="horas"></label>
-              </div>
-            </div>
-
-          </div><!-- /checklist -->
-        </section>
-
-        <!-- ══ TAB 3 · ENTRETENIMIENTO & OFICINA ═══════ -->
-        <section class="tab-panel card" id="tab-entretenimiento"
-          role="tabpanel" aria-labelledby="tab-btn-entretenimiento" hidden>
-          <div class="tab-panel__header">
-            <span class="tab-panel__icon">📺</span>
-            <div>
-              <h2 class="card__title">Entretenimiento & Oficina</h2>
-              <p class="card__hint">Pantallas, cargadores, router y equipos de trabajo y ocio.</p>
-            </div>
-          </div>
-
-          <div class="checklist checklist--grid">
-
-            <!-- Televisor -->
-            <div class="item item--con-horas" data-clave="television">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Televisor <span
-                  class="item__watts">(~100W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas encendido/día <input type="number" min="0" max="24" step="0.5" value="4"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <!-- Decodificador -->
-            <div class="item item--con-horas" data-clave="decodificador_tv">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Decodificador / módem TV <span
-                  class="item__watts">(~15W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas encendido/día <input type="number" min="0" max="24" step="0.5" value="24"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <!-- Computador escritorio -->
-            <div class="item item--con-horas" data-clave="computador_escritorio">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Computador de escritorio <span
-                  class="item__watts">(~150W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas encendido/día <input type="number" min="0" max="24" step="0.5" value="6"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <!-- Router WiFi — fijo 24/7 -->
-            <div class="item item--fijo" data-clave="router_wifi">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Router WiFi <span
-                  class="item__watts">(~8W, 24/7)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <input type="hidden" class="horas" value="24">
-              </div>
-            </div>
-
-            <!-- Cargador celular -->
-            <div class="item item--con-horas" data-clave="cargador_celular">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Cargador de celular <span
-                  class="item__watts">(~5W cargando / ~0.5W fantasma)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de <strong>carga activa</strong>/día <input type="number" min="0" max="24" step="0.25"
-                    value="1" class="horas"></label>
-                <label class="item__fantasma"><input type="checkbox" class="queda-conectado" checked> Queda enchufado el
-                  resto del día (consumo fantasma)</label>
-              </div>
-            </div>
-
-            <!-- Cargador tablet -->
-            <div class="item item--con-horas" data-clave="cargador_tablet">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Cargador de tablet <span
-                  class="item__watts">(~10W cargando / ~0.5W fantasma)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de <strong>carga activa</strong>/día <input type="number" min="0" max="24" step="0.25"
-                    value="1.5" class="horas"></label>
-                <label class="item__fantasma"><input type="checkbox" class="queda-conectado" checked> Queda enchufado el
-                  resto del día (consumo fantasma)</label>
-              </div>
-            </div>
-
-            <!-- Cargador notebook -->
-            <div class="item item--con-horas" data-clave="cargador_notebook">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Cargador de notebook <span
-                  class="item__watts">(~65W cargando / ~1.5W fantasma)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de <strong>carga activa</strong>/día <input type="number" min="0" max="24" step="0.25"
-                    value="2" class="horas"></label>
-                <label class="item__fantasma"><input type="checkbox" class="queda-conectado" checked> Queda enchufado el
-                  resto del día (consumo fantasma)</label>
-              </div>
-            </div>
-
-          </div><!-- /checklist -->
-        </section>
-
-        <!-- ══ TAB 4 · HOGAR ═══════════════════════════ -->
-        <section class="tab-panel card" id="tab-hogar"
-          role="tabpanel" aria-labelledby="tab-btn-hogar" hidden>
-          <div class="tab-panel__header">
-            <span class="tab-panel__icon">🏠</span>
-            <div>
-              <h2 class="card__title">Otros del Hogar</h2>
-              <p class="card__hint">Limpieza, climatización, cuidado personal y accesos.</p>
-            </div>
-          </div>
-
-          <div class="checklist checklist--grid">
-
-            <!-- Ventilador -->
-            <div class="item item--con-horas" data-clave="ventilador">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Ventilador <span
-                  class="item__watts">(~50W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.5" value="4" class="horas"></label>
-              </div>
-            </div>
-
-            <!-- Calefactor -->
-            <div class="item item--con-horas" data-clave="calefactor_electrico">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Calefactor eléctrico <span
-                  class="item__watts">(~1500W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.5" value="2" class="horas"></label>
-              </div>
-            </div>
-
-            <!-- Aspiradora -->
-            <div class="item item--con-horas" data-clave="aspiradora">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Aspiradora <span
-                  class="item__watts">(~1400W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.05" value="0.3"
-                    class="horas"></label>
-                <label>Veces por semana <input type="number" min="1" max="7" value="2" class="veces-semana"></label>
-              </div>
-              <button type="button" class="btn btn--ghost btn--comparar" data-categoria="aspiradora">Ver alternativas más
-                eficientes</button>
-              <div class="comparador-resultado" hidden></div>
-            </div>
-
-            <!-- Plancha de ropa -->
-            <div class="item item--con-horas" data-clave="plancha_ropa">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Plancha de ropa <span
-                  class="item__watts">(~1000W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.1" value="0.5"
-                    class="horas"></label>
-                <label>Veces por semana <input type="number" min="1" max="7" value="2" class="veces-semana"></label>
-              </div>
-            </div>
-
-            <!-- Secador pelo -->
-            <div class="item item--con-horas" data-clave="secador_pelo">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Secador de pelo <span
-                  class="item__watts">(~1200W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.05" value="0.2"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <!-- Portón eléctrico -->
-            <div class="item item--con-horas" data-clave="porton_electrico">
-              <label class="item__check"><input type="checkbox" class="chk-artefacto"> Portón eléctrico <span
-                  class="item__watts">(~300W)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas de uso/día <input type="number" min="0" max="24" step="0.05" value="0.1"
-                    class="horas"></label>
-              </div>
-            </div>
-
-          </div><!-- /checklist -->
-        </section>
-
-        <!-- ══ TAB 5 · ILUMINACIÓN, CCTV & HERVIDOR ═══ -->
-        <section class="tab-panel card" id="tab-iluminacion"
-          role="tabpanel" aria-labelledby="tab-btn-iluminacion" hidden>
-          <div class="tab-panel__header">
-            <span class="tab-panel__icon">💡</span>
-            <div>
-              <h2 class="card__title">Iluminación, CCTV & Agua Caliente</h2>
-              <p class="card__hint">Marca todos los tipos de iluminación que tengas (pueden ser varios a la vez).</p>
-            </div>
-          </div>
-
-          <!-- Iluminación -->
-          <h3 class="tab-section__subtitle">💡 Tipos de Iluminación</h3>
-          <div class="checklist checklist--grid">
-
-            <div class="item item--con-horas" data-tipo="led">
-              <label class="item__check"><input type="checkbox" class="chk-iluminacion"> LED <span
-                  class="item__watts">(~9W c/u)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="6" class="cantidad"></label>
-                <label>Horas encendidas/día <input type="number" min="0" max="24" step="0.5" value="5"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <div class="item item--con-horas" data-tipo="incandescente">
-              <label class="item__check"><input type="checkbox" class="chk-iluminacion"> Incandescente <span
-                  class="item__watts">(~60W c/u)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="4" class="cantidad"></label>
-                <label>Horas encendidas/día <input type="number" min="0" max="24" step="0.5" value="5"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <div class="item item--con-horas" data-tipo="fluorescente_tubo">
-              <label class="item__check"><input type="checkbox" class="chk-iluminacion"> Tubo fluorescente <span
-                  class="item__watts">(~36W c/u)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="2" class="cantidad"></label>
-                <label>Horas encendidas/día <input type="number" min="0" max="24" step="0.5" value="6"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <div class="item item--con-horas" data-tipo="fluorescente_ahorro">
-              <label class="item__check"><input type="checkbox" class="chk-iluminacion"> Ahorradora / CFL <span
-                  class="item__watts">(~15W c/u)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="2" class="cantidad"></label>
-                <label>Horas encendidas/día <input type="number" min="0" max="24" step="0.5" value="5"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <div class="item item--con-horas" data-tipo="halogeno">
-              <label class="item__check"><input type="checkbox" class="chk-iluminacion"> Halógena <span
-                  class="item__watts">(~42W c/u)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="2" class="cantidad"></label>
-                <label>Horas encendidas/día <input type="number" min="0" max="24" step="0.5" value="4"
-                    class="horas"></label>
-              </div>
-            </div>
-
-            <div class="item item--con-horas" data-tipo="neon_exterior">
-              <label class="item__check"><input type="checkbox" class="chk-iluminacion"> Neón / letrero exterior <span
-                  class="item__watts">(~20W c/u)</span></label>
-              <div class="item__fields">
-                <label>Cantidad <input type="number" min="0" value="1" class="cantidad"></label>
-                <label>Horas encendidas/día <input type="number" min="0" max="24" step="0.5" value="8"
-                    class="horas"></label>
-              </div>
-            </div>
-
-          </div><!-- /checklist iluminacion -->
-
-          <!-- CCTV -->
-          <h3 class="tab-section__subtitle">📷 Cámaras de Seguridad (CCTV)</h3>
-          <div class="cctv-block">
-            <div class="radio-row">
-              <label><input type="radio" name="cctv" value="no" checked> No tengo</label>
-              <label><input type="radio" name="cctv" value="si"> Sí tengo</label>
-            </div>
-            <div class="item__fields" id="camposCctv" hidden>
-              <label>Cantidad de cámaras <span class="item__watts">(~6W c/u)</span><input type="number" min="0" value="2"
-                  id="cantidadCamaras"></label>
-              <label><input type="checkbox" id="tieneDvr" checked> Tengo grabador DVR/NVR <span
-                  class="item__watts">(~15W)</span></label>
-            </div>
-          </div>
-
-          <!-- Hervidor -->
-          <h3 class="tab-section__subtitle">♨️ Agua Caliente (Hervidor)</h3>
-          <div class="hervidor-block">
-            <div class="radio-row">
-              <label><input type="radio" name="hervidor" value="no" checked> No uso hervidor eléctrico</label>
-              <label><input type="radio" name="hervidor" value="si"> Sí, uso hervidor eléctrico</label>
-            </div>
-            <div class="item__fields" id="camposHervidor" hidden>
-              <label>Litros que llenas habitualmente <input type="number" min="0" step="0.1" value="1.7"
-                  id="litrosHabitual"></label>
-              <label>Litros que realmente necesitas <input type="number" min="0" step="0.1" value="0.3"
-                  id="litrosNecesario"></label>
-              <label>Veces al día <input type="number" min="0" value="3" id="usosDia"></label>
-            </div>
-          </div>
-
-        </section>
-
-        <!-- ══ TAB 6 · MIS ARTEFACTOS ═════════════════ -->
-        <section class="tab-panel card" id="tab-personalizados"
-          role="tabpanel" aria-labelledby="tab-btn-personalizados" hidden>
-          <div class="tab-panel__header">
-            <span class="tab-panel__icon">➕</span>
-            <div>
-              <h2 class="card__title">Mis Propios Artefactos</h2>
-              <p class="card__hint">
-                ¿Tienes algo que no está en las listas? Un taller con compresor, un plotter, una máquina de café
-                profesional, equipo médico en casa — agrégalo aquí. Si no sabes la potencia exacta, la etiqueta o el manual
-                del equipo la indica en Watts (W).
-              </p>
-            </div>
-          </div>
-
-          <div id="listaPersonalizados"></div>
-          <button type="button" class="btn btn--ghost" id="btnAgregarPersonalizado">+ Agregar artefacto</button>
-        </section>
-
-      </div><!-- /tabs-panels -->
-
-      <!-- ─── SUBMIT BAR ──────────────────────────────── -->
-      <div class="submit-bar">
-        <div class="submit-bar__info">
-          <span class="submit-bar__label">Consumo estimado</span>
-          <span class="submit-bar__kwh" id="submitBarKwh">000.0 kWh/mes</span>
         </div>
-        <button type="submit" class="btn btn--primary" id="btnCalcular">⚡ Calcular mi consumo y ahorro</button>
       </div>
 
-    </form><!-- /#formularioEnergia -->
+    </section>
+  </main>
 
-    <!-- ══════════════════════════════════════════════════ -->
-    <!--  RESULTADOS — Fuera del form, intacto             -->
-    <!-- ══════════════════════════════════════════════════ -->
-    <section class="card resultados" id="resultados" hidden>
-      <div class="resultados__encabezado">
-        <h2 class="card__title">Resultado</h2>
-        <button type="button" class="btn btn--ghost" id="btnImprimir">🖨️ Imprimir informe</button>
-      </div>
-      <p class="resultados__narrativa" id="narrativa"></p>
-      <div class="resultados__totales">
-        <div><span class="resultados__label">Consumo total</span><span class="resultados__valor" id="totalKwh">—</span>
+  <!-- ════ FACTURA ENERGÉTICA (solo visible en @media print) ════ -->
+  <div id="factura-print-template" aria-hidden="true">
+
+    <!-- ── ENCABEZADO DE FACTURA ── -->
+    <div class="fpt-header">
+      <div class="fpt-header__brand">
+        <img src="/static/img/icono_2.png" alt="VólticvS Logo" class="fpt-logo">
+        <div>
+          <h1 class="fpt-brand-name">VólticvS</h1>
+          <p class="fpt-brand-tagline">Tu asesor energético · Equipo Volti</p>
         </div>
-        <div><span class="resultados__label">Factura estimada</span><span class="resultados__valor"
-            id="totalClp">—</span></div>
-        <div><span class="resultados__label ahorro">Ahorro potencial/mes</span><span class="resultados__valor ahorro"
-            id="ahorroClp">—</span></div>
       </div>
+      <div class="fpt-folio-box">
+        <div class="fpt-folio-label">REPORTE ENERGÉTICO</div>
+        <div class="fpt-folio-num" id="fptFolio">#VOLT-2026-0000</div>
+        <div class="fpt-folio-date" id="fptFecha">Fecha: —</div>
+      </div>
+    </div>
 
-      <h3 class="resultados__subtitulo">📋 Recomendaciones concretas</h3>
-      <ul class="resultados__recomendaciones" id="listaRecomendaciones"></ul>
+    <!-- Barra de cliente/ubicación -->
+    <div class="fpt-client-bar">
+      <span>📍 País: <strong id="fptPais">—</strong></span>
+      <span>🗺️ Región / Provincia: <strong id="fptRegion">—</strong></span>
+      <span>🏠 Inmueble: <strong id="fptInmuebleBadge">—</strong></span>
+      <span>👥 Habitantes: <strong id="fptHabBadge">—</strong></span>
+    </div>
 
-      <h3 class="resultados__subtitulo">📈 Cómo se sostiene tu ahorro en el tiempo</h3>
-      <table class="tabla-desglose tabla-proyeccion">
-        <thead>
-          <tr>
-            <th>1 mes</th>
-            <th>6 meses</th>
-            <th>1 año</th>
-            <th>5 años</th>
-          </tr>
-        </thead>
+    <!-- ── SECCIÓN 1: DATOS DEL INMUEBLE ── -->
+    <section class="fpt-section">
+      <h2 class="fpt-section-title">1 · Datos del Inmueble</h2>
+      <table class="fpt-table">
         <tbody>
           <tr>
-            <td id="proy1Mes">—</td>
-            <td id="proy6Meses">—</td>
-            <td id="proy1Anio">—</td>
-            <td id="proy5Anios">—</td>
+            <th>Tipo de Vivienda</th><td id="fptTipoVivienda">—</td>
+            <th>Dormitorios</th><td id="fptDormitorios">—</td>
+          </tr>
+          <tr>
+            <th>Ventanas</th><td id="fptVentanas">—</td>
+            <th>Adultos / Menores</th><td id="fptAdultosMenores">—</td>
           </tr>
         </tbody>
       </table>
-      <p class="card__hint">
-        Este ahorro se sostiene mientras mantengas los hábitos recomendados (desconectar, cambiar a LED, etc.)
-        — no es un descuento único, se repite cada mes mientras no vuelvas a los hábitos anteriores.
-      </p>
-
-      <table class="tabla-desglose">
-        <thead>
-          <tr>
-            <th>Ítem</th>
-            <th>kWh/mes</th>
-            <th>Ahorro CLP/mes</th>
-          </tr>
-        </thead>
-        <tbody id="desgloseBody"></tbody>
-      </table>
-      <button type="button" class="btn btn--ghost" id="btnNuevoCalculo">↺ Nuevo cálculo / nueva persona</button>
     </section>
 
-  </main>
+    <!-- ── SECCIÓN 2: DESGLOSE DE CONSUMO Y EQUIPOS ── -->
+    <section class="fpt-section">
+      <h2 class="fpt-section-title">2 · Desglose de Consumo &amp; Equipamiento</h2>
+      <table class="fpt-table fpt-table--desglose">
+        <thead>
+          <tr>
+            <th class="fpt-col-concepto">Artefacto / Concepto</th>
+            <th class="fpt-col-cantidad">Cantidad / Frecuencia</th>
+            <th class="fpt-col-estado">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="fptDesglose">
+          <!-- Filas generadas dinámicamente por JS -->
+        </tbody>
+      </table>
+    </section>
 
-  <!-- ══════════════════════════════════════════════════ -->
-  <!--  TEMPLATE: Artefacto personalizado (intacto)      -->
-  <!-- ══════════════════════════════════════════════════ -->
-  <template id="templatePersonalizado">
-    <div class="item personalizado">
-      <!-- Badge de estado -->
-      <span class="p-badge-incluido">✓ Incluido en el cálculo</span>
-
-      <label>Nombre
-        <input type="text" class="p-nombre" placeholder="Ej: Máquina de café profesional"
-               list="sugerencias-artefactos" autocomplete="off">
-      </label>
-
-      <div class="p-watts-group">
-        <label>Potencia (W) <input type="number" min="0" class="p-watts" placeholder="Ej: 1200"></label>
-        <div class="p-nivel-btns" aria-label="Nivel de consumo estimado">
-          <button type="button" class="btn-nivel" data-watts="100"  title="Ventilador, luces, electrónicos pequeños">🟢 Bajo<span>~100W</span></button>
-          <button type="button" class="btn-nivel" data-watts="500"  title="Licuadoras, herramientas ligeras">🟡 Medio<span>~500W</span></button>
-          <button type="button" class="btn-nivel" data-watts="1200" title="Cafeteras, motores grandes">🟠 Alto<span>~1200W</span></button>
-          <button type="button" class="btn-nivel" data-watts="2000" title="Calefactores, aire acondicionado">🔴 Muy Alto<span>~2000W</span></button>
+    <!-- ── SECCIÓN 3: TOTALES Y DIAGNÓSTICO ── -->
+    <section class="fpt-section">
+      <h2 class="fpt-section-title">3 · Diagnóstico Energético</h2>
+      <div class="fpt-totals-grid">
+        <div class="fpt-total-card fpt-total-card--categoria">
+          <span class="fpt-total-label">Categoría Energética</span>
+          <span class="fpt-total-value" id="fptCategoria">—</span>
         </div>
-        <p class="p-watts-hint">💡 Revisa la etiqueta trasera de tu equipo para ver sus Watts exactos, o elige un nivel de consumo estimado arriba.</p>
+        <div class="fpt-total-card">
+          <span class="fpt-total-label">Consumo Mensual Estimado</span>
+          <span class="fpt-total-value" id="fptKwh">— kWh</span>
+        </div>
+        <div class="fpt-total-card fpt-total-card--costo">
+          <span class="fpt-total-label">Costo Estimado</span>
+          <span class="fpt-total-value" id="fptCosto">—</span>
+        </div>
+        <div class="fpt-total-card fpt-total-card--ahorro">
+          <span class="fpt-total-label">Ahorro Potencial / Mes</span>
+          <span class="fpt-total-value" id="fptAhorro">—</span>
+        </div>
       </div>
+    </section>
 
-      <label>Horas de uso/día <input type="number" min="0" max="24" step="0.1" class="p-horas"
-          placeholder="Ej: 1"></label>
-      <label>Cantidad <input type="number" min="1" value="1" class="p-cantidad"></label>
-      <button type="button" class="btn btn--eliminar">Quitar</button>
+    <!-- ── PIE DE PÁGINA / FIRMA INSTITUCIONAL ── -->
+    <div class="fpt-footer">
+      <div class="fpt-footer__recs">
+        <h3 class="fpt-footer__recs-title">💡 Recomendaciones de Volti</h3>
+        <ul class="fpt-recs-list" id="fptRecs"></ul>
+      </div>
+      <div class="fpt-footer__firma">
+        <img src="/static/img/icono_2.png" alt="Logo" class="fpt-firma-logo">
+        <div class="fpt-firma-text">
+          <strong>VólticvS — Equipo Volti</strong>
+          <p>VólticvS © 2026 — Equipo Volti</p>
+          <p class="fpt-disclaimer">Este reporte es orientativo. Los valores son estimaciones basadas en los datos ingresados por el usuario.</p>
+        </div>
+      </div>
     </div>
-  </template>
 
-  <!-- Sugerencias comunes para el campo Nombre -->
-  <datalist id="sugerencias-artefactos">
-    <option value="Aire Acondicionado"></option>
-    <option value="Calefactor / Estufa eléctrica"></option>
-    <option value="Máquina de café / Expreso"></option>
-    <option value="Bomba de agua / Compresor"></option>
-    <option value="Herramienta eléctrica (Taladro, Sierra)"></option>
-    <option value="Impresora / Plotter"></option>
-    <option value="Equipo de sonido / Amplificador"></option>
-    <option value="Consola de videojuegos"></option>
-    <option value="Acuario / Pecera con filtro"></option>
-    <option value="Equipo médico en casa"></option>
-  </datalist>
+  </div><!-- /#factura-print-template -->
 
-  <!-- ══════════════════════════════════════════════════ -->
-  <!--  SCRIPT: Tabs logic (lightweight, no libraries)   -->
-  <!-- ══════════════════════════════════════════════════ -->
+  <footer class="footer no-print">
+    <p>VólticvS © 2026 — Tu asesor energético inteligente · Equipo Volti</p>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
   <script>
-    (function () {
-      const tabBtns = document.querySelectorAll('.tab-btn');
-      const tabPanels = document.querySelectorAll('.tab-panel');
-      const indicator = document.querySelector('.tabs-nav__indicator');
-
-      function getActiveBtn() {
-        return document.querySelector('.tab-btn--active');
-      }
-
-      function moveIndicator(btn) {
-        const nav = btn.closest('.tabs-nav');
-        const navRect = nav.getBoundingClientRect();
-        const btnRect = btn.getBoundingClientRect();
-        indicator.style.width = btnRect.width + 'px';
-        indicator.style.left = (btnRect.left - navRect.left + nav.scrollLeft) + 'px';
-      }
-
-      function switchTab(targetId) {
-        // Hide all panels
-        tabPanels.forEach(panel => {
-          panel.hidden = true;
-          panel.classList.remove('tab-panel--active');
-        });
-        // Deactivate all buttons
-        tabBtns.forEach(btn => {
-          btn.classList.remove('tab-btn--active');
-          btn.setAttribute('aria-selected', 'false');
-        });
-        // Activate target
-        const targetPanel = document.getElementById('tab-' + targetId);
-        const targetBtn = document.getElementById('tab-btn-' + targetId);
-        if (targetPanel) {
-          targetPanel.hidden = false;
-          // Trigger reflow for animation
-          void targetPanel.offsetWidth;
-          targetPanel.classList.add('tab-panel--active');
-        }
-        if (targetBtn) {
-          targetBtn.classList.add('tab-btn--active');
-          targetBtn.setAttribute('aria-selected', 'true');
-          moveIndicator(targetBtn);
-        }
-      }
-
-      // Init indicator position on load
-      window.addEventListener('load', () => {
-        const active = getActiveBtn();
-        if (active) moveIndicator(active);
-      });
-
-      // Resize: re-position indicator
-      window.addEventListener('resize', () => {
-        const active = getActiveBtn();
-        if (active) moveIndicator(active);
-      });
-
-      // Tab button click
-      tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-      });
-
-      // ── Badge counters ─────────────────────────────────
-      const tabBadgeMap = {
-        'linea-blanca': 'badge-linea-blanca',
-        'entretenimiento': 'badge-entretenimiento',
-        'hogar': 'badge-hogar',
-        'iluminacion': 'badge-iluminacion',
-        'personalizados': 'badge-personalizados',
-      };
-
-      function updateBadges() {
-        // Count checked artefactos per tab panel
-        document.querySelectorAll('.tab-panel').forEach(panel => {
-          const tabId = panel.id.replace('tab-', '');
-          const badgeId = tabBadgeMap[tabId];
-          if (!badgeId) return;
-          const badge = document.getElementById(badgeId);
-          if (!badge) return;
-          const checked = panel.querySelectorAll('.chk-artefacto:checked, .chk-iluminacion:checked').length;
-          badge.textContent = checked;
-          badge.hidden = checked === 0;
-        });
-      }
-
-      document.addEventListener('change', (e) => {
-        if (e.target.matches('.chk-artefacto, .chk-iluminacion')) {
-          updateBadges();
-        }
-      });
-
-      // ── Sync submit bar kWh display ───────────────────
-      const meterValue = document.getElementById('meterValue');
-      const submitBarKwh = document.getElementById('submitBarKwh');
-      if (meterValue && submitBarKwh) {
-        const observer = new MutationObserver(() => {
-          submitBarKwh.textContent = meterValue.textContent + ' kWh/mes';
-        });
-        observer.observe(meterValue, { childList: true, characterData: true, subtree: true });
-      }
-    })();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   </script>
-
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 
 </html>

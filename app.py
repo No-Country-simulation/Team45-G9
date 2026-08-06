@@ -26,21 +26,26 @@ def extension_permitida(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in EXTENSIONES_PERMITIDAS
 
 
-SYSTEM_PROMPT_NARRADOR = """Eres "VólticvS", un asesor energético con buen humor de Chile.
+SYSTEM_PROMPT_NARRADOR = """Eres "VólticvS", un asesor energético inteligente y amigable.
 Ya se calcularon con exactitud el consumo y el ahorro potencial del hogar del usuario;
 tu única tarea es redactar un resumen breve (4 a 6 frases) explicando los resultados de
 forma cálida, clara y con un toque de humor.
 
 REGLA ABSOLUTA: no inventes ni cambies ningún número. Usa EXACTAMENTE los valores en
-kWh y CLP que te entrego. Si necesitas redondear, usa el mismo valor que te dieron.
-Destaca cuál es la mayor oportunidad de ahorro y da 5 - 7 recomendaciones concretas.
-No repitas toda la lista de artefactos, enfócate en lo más relevante.
-
-Debes realizar una proyeccion en el tiempo ademas a los 3 meses, 6 meses, 12 meses, a los 2 años y 5 años.
+kWh y la moneda/símbolo que te entrego (DOP, CLP, USD, etc.).
+Destaca cuál es la mayor oportunidad de ahorro y da recomendaciones concretas.
 """
 
 
 def generar_narrativa(resumen: dict) -> str:
+    simbolo = resumen.get("simbolo_moneda", "$")
+    moneda = resumen.get("moneda", "")
+    costo_val = resumen.get("total_clp_mes") or resumen.get("costo_estimado_mes") or 0
+    ahorro_val = resumen.get("ahorro_potencial_clp_mes") or resumen.get("ahorro_potencial_mes") or 0
+
+    costo_str = f"{simbolo} {costo_val:,.0f} {moneda}".strip() if isinstance(costo_val, (int, float)) else str(costo_val)
+    ahorro_str = f"{simbolo} {ahorro_val:,.0f} {moneda}".strip() if isinstance(ahorro_val, (int, float)) else str(ahorro_val)
+
     try:
         llm = ChatGroq(
             model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
@@ -51,12 +56,10 @@ def generar_narrativa(resumen: dict) -> str:
         respuesta = llm.invoke([SystemMessage(content=SYSTEM_PROMPT_NARRADOR), HumanMessage(content=mensaje)])
         return respuesta.content
     except Exception:
-        # Si no hay API key configurada o falla la llamada, igual entregamos
-        # un resumen útil basado 100% en los números ya calculados.
         return (
-            f"Tu consumo estimado es de {resumen['total_kwh_mes']} kWh al mes "
-            f"(~${resumen['total_clp_mes']:,.0f} CLP). Podrías ahorrar hasta "
-            f"${resumen['ahorro_potencial_clp_mes']:,.0f} CLP al mes aplicando los cambios sugeridos."
+            f"Tu consumo estimado es de {resumen.get('total_kwh_mes', 0)} kWh al mes "
+            f"(~{costo_str}). Podrías ahorrar hasta "
+            f"{ahorro_str} al mes aplicando los cambios sugeridos."
         )
 
 
@@ -382,52 +385,279 @@ RESPONDE SOLO con este JSON exacto, sin texto adicional:
         if os.path.exists(ruta_temp):
             os.remove(ruta_temp)
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  ENGINE DE CÁLCULO ENERGÉTICO — Helpers
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Tarifas promedio por kWh en moneda local (actualizables) ──────────────────
+_TARIFAS: dict[str, tuple[float, str]] = {
+    "DO": (11.5,  "RD$"),   # Rep. Dominicana  – DOP
+    "CL": (145.0, "$"),     # Chile            – CLP
+    "AR": (75.0,  "$"),     # Argentina        – ARS
+    "MX": (1.20,  "$"),     # México           – MXN
+    "CO": (650.0, "$"),     # Colombia         – COP
+    "PE": (0.45,  "S/"),    # Perú             – PEN
+    "EC": (0.10,  "$"),     # Ecuador          – USD
+    "BO": (0.08,  "Bs"),    # Bolivia          – BOB
+    "PY": (150.0, "₲"),     # Paraguay         – PYG
+    "UY": (6.50,  "$"),     # Uruguay          – UYU
+    "VE": (0.05,  "Bs.D"),  # Venezuela        – VES
+    "CR": (130.0, "₡"),     # Costa Rica       – CRC
+    "PA": (0.17,  "$"),     # Panamá           – USD
+    "GT": (1.50,  "Q"),     # Guatemala        – GTQ
+    "HN": (3.50,  "L"),     # Honduras         – HNL
+    "SV": (0.19,  "$"),     # El Salvador      – USD
+    "NI": (7.50,  "C$"),    # Nicaragua        – NIO
+    "US": (0.18,  "$"),     # EE.UU.           – USD
+    "PR": (0.22,  "$"),     # Puerto Rico      – USD
+    "ES": (0.25,  "€"),     # España           – EUR
+    "BR": (0.65,  "R$"),    # Brasil           – BRL
+    "CU": (0.09,  "$"),     # Cuba             – CUP
+    "HT": (0.14,  "G"),     # Haití            – HTG
+    "JM": (0.35,  "J$"),    # Jamaica          – JMD
+}
+_TARIFA_DEFAULT: tuple[float, str] = (0.18, "$")  # Fallback: USD
+
+
+def _get_tarifa(pais_codigo: str) -> tuple[float, str]:
+    """Devuelve (tarifa_kwh, simbolo_moneda) para el código ISO del país."""
+    if pais_codigo in _TARIFAS:
+        return _TARIFAS[pais_codigo]
+    # Fallback: intentar leer tarifa de calculos.REFERENCIA
+    datos_pais = calculos.REFERENCIA.get("paises", {}).get(pais_codigo, {})
+    tarifa = float(datos_pais.get("tarifa_kwh") or 0)
+    simbolo = datos_pais.get("simbolo") or _TARIFA_DEFAULT[1]
+    if tarifa > 0:
+        return tarifa, simbolo
+    return _TARIFA_DEFAULT
+
+
+def _sanitizar(data: dict) -> dict:
+    """
+    Convierte cada campo del payload a su tipo correcto.
+    Cualquier valor None / null / "" / ausente → 0 / "" seguro.
+    """
+    def _f(key, *aliases):
+        for k in (key, *aliases):
+            v = data.get(k)
+            if v not in (None, "", False):
+                try:
+                    return float(v)
+                except (TypeError, ValueError):
+                    pass
+        return 0.0
+
+    def _i(key, *aliases):
+        return int(_f(key, *aliases))
+
+    def _s(key, default=""):
+        v = data.get(key)
+        return str(v).strip() if v else default
+
+    return {
+        # Consumo (admite tanto 'consumo' como 'consumo_kwh')
+        "consumo":                _f("consumo", "consumo_kwh"),
+        "flag_anual":             _i("flag_anual"),
+        # Ubicación
+        "pais":                   _s("pais", "CL"),
+        "estado_provincia":       _s("estado_provincia"),
+        "tipo_inmueble":          _s("tipo_inmueble", "Casa"),
+        # Vivienda
+        "dormitorios":            _i("dormitorios"),
+        "ventanas":               _i("ventanas"),
+        "habitantes_mayores":     _i("habitantes_mayores"),
+        "habitantes_menores":     _i("habitantes_menores"),
+        # Equipos con switch
+        "aire_acondicionado":     _i("aire_acondicionado"),
+        "calefaccion_electrica":  _i("calefaccion_electrica"),
+        "agua_caliente_electrica":_i("agua_caliente_electrica"),
+        "secarropas_electrico":   _i("secarropas_electrico"),
+        "horno_electrico":        _i("horno_electrico"),
+        # Equipos con contador
+        "refrigerador":           _i("refrigerador"),
+        "freezer":                _i("freezer"),
+        "tv":                     _i("tv"),
+        "tv_frecuencia":          _f("tv_frecuencia"),
+        "lavado_frecuencia":      _i("lavado_frecuencia"),
+        # Auxiliares
+        "luces_interior":         _i("luces_interior"),
+        "luces_exterior":         _i("luces_exterior"),
+        "flag_galones":           _i("flag_galones"),
+    }
+
+
+def _estimar_consumo(d: dict) -> dict:
+    """
+    Si d['consumo'] > 0 → usa ese valor (convierte de anual a mensual si aplica).
+    Si d['consumo'] == 0 → suma el consumo de cada artefacto declarado.
+
+    Retorna: {consumo_kwh, fuente, desglose}
+    """
+    consumo_declarado = d["consumo"]
+
+    # Convertir anual → mensual
+    if d["flag_anual"] == 1 and consumo_declarado > 0:
+        consumo_declarado = consumo_declarado / 12
+
+    if consumo_declarado > 0:
+        return {
+            "consumo_kwh": round(consumo_declarado, 1),
+            "fuente": "declarado",
+            "desglose": {"Consumo declarado en recibo": round(consumo_declarado, 1)},
+        }
+
+    # ── Estimación desde artefactos ────────────────────────────────────────
+    desglose: dict[str, float] = {}
+
+    base = (d["habitantes_mayores"] * 30) + (d["habitantes_menores"] * 15)
+    if base:
+        desglose["Iluminación y uso base por habitantes"] = round(base, 1)
+
+    ac = d["aire_acondicionado"] * 120
+    if ac:
+        desglose["Aire Acondicionado"] = round(ac, 1)
+
+    calef = d["calefaccion_electrica"] * 150
+    if calef:
+        desglose["Calefacción Eléctrica"] = round(calef, 1)
+
+    agua = d["agua_caliente_electrica"] * 180
+    if agua:
+        desglose["Termotanque / Calentador Eléctrico"] = round(agua, 1)
+
+    seca = d["secarropas_electrico"] * 40
+    if seca:
+        desglose["Secarropas Eléctrico"] = round(seca, 1)
+
+    horno = d["horno_electrico"] * 30
+    if horno:
+        desglose["Horno / Anafe Eléctrico"] = round(horno, 1)
+
+    frio = (d["refrigerador"] * 35) + (d["freezer"] * 45)
+    if frio:
+        desglose["Refrigeración (heladera + freezer)"] = round(frio, 1)
+
+    tv_kwh = d["tv"] * d["tv_frecuencia"] * 0.1 * 4.33
+    if tv_kwh:
+        desglose["Televisores"] = round(tv_kwh, 1)
+
+    lavado_kwh = d["lavado_frecuencia"] * 3.5 * 4.33
+    if lavado_kwh:
+        desglose["Lavadora de Ropa"] = round(lavado_kwh, 1)
+
+    total = sum(desglose.values())
+
+    # Mínimo plausible si el usuario no declaró nada relevante
+    if total <= 0:
+        total = 50.0
+        desglose["Consumo base estimado (datos insuficientes)"] = 50.0
+
+    return {
+        "consumo_kwh": round(total, 1),
+        "fuente": "estimado",
+        "desglose": desglose,
+    }
+
+
+def _clasificar(kwh: float) -> str:
+    if kwh < 250:
+        return "Eficiente"
+    if kwh < 450:
+        return "Moderado"
+    return "Ineficiente"
+
+
+def _recomendaciones_contextuales(categoria: str, d: dict) -> list[str]:
+    """Genera recomendaciones concretas según categoría y artefactos presentes."""
+    recs: list[str] = []
+
+    if categoria == "Eficiente":
+        recs.append("¡Excelente! Tu hogar tiene un consumo eficiente. ¡Sigue así!")
+    elif categoria == "Moderado":
+        recs.append("Tu consumo es moderado. Con pequeños ajustes puedes alcanzar la categoría Eficiente.")
+    else:
+        recs.append("Tu consumo es elevado. Implementa las recomendaciones para reducirlo significativamente.")
+
+    if d["aire_acondicionado"]:
+        recs.append("Mantén el A/C a 24°C y limpia los filtros mensualmente para reducir hasta un 20% su consumo.")
+    if d["calefaccion_electrica"]:
+        recs.append("Usa timer en calefactores y aísla puertas y ventanas para retener el calor el mayor tiempo posible.")
+    if d["agua_caliente_electrica"]:
+        recs.append("Configura el termotanque a 50°C y revisa el aislamiento del depósito; así evitas pérdidas de calor.")
+    if d["refrigerador"] > 1:
+        recs.append("Consolida alimentos en un solo refrigerador y desconecta el segundo cuando no sea necesario.")
+    if d["tv_frecuencia"] > 6:
+        recs.append("Activa el modo ahorro de energía en el TV y evita dejarlo en stand-by durante la noche.")
+    if d["lavado_frecuencia"] > 4:
+        recs.append("Agrupa la ropa y lava con agua fría; ahorras hasta el 90% de la energía del ciclo de lavado.")
+    if d["horno_electrico"]:
+        recs.append("Precalienta el horno solo cuando sea necesario y aprovecha el calor residual apagándolo antes de terminar.")
+
+    recs.append("Desconecta cargadores y aparatos en stand-by; pueden representar hasta el 10% de tu factura mensual.")
+    recs.append("Usa bombillas LED en toda la vivienda y aprovecha la luz natural durante el día.")
+
+    return recs[:7]  # máximo 7 recomendaciones
+
 
 @app.route("/api/analisis-energetico", methods=["POST"])
 def analisis_energetico_mvp():
+    """Endpoint principal de cálculo energético — v2.0."""
     data = request.get_json(force=True) or {}
-    
-    # 1. Leer las 5 variables requeridas por el Hackathon
-    consumo = float(data.get("consumo_kwh", 0))
-    uso_pico = bool(data.get("uso_horario_pico", False))
-    cantidad_equipos = int(data.get("cantidad_equipos", 1))
-    tipo_inmueble = data.get("tipo_inmueble", "Casa")
-    horas_alto_consumo = int(data.get("horas_alto_consumo", 0))
 
-    # 2. Regla financiera obligatoria del Hackathon ($0.75 USD por kWh)
-    costo_estimado = round(consumo * 0.75, 2)
+    # ── 1. Sanitización completa de entradas ────────────────────────────────
+    d = _sanitizar(data)
 
-    # 3. Clasificación base (Mock mientras el equipo de ML sube su modelo .pkl)
-    if consumo > 350 or uso_pico or horas_alto_consumo > 6:
-        categoria = "Ineficiente"
-        probabilidad = 0.81
-        recomendaciones = [
-            "Reducir el uso de equipos durante los horarios pico",
-            "Evaluar equipos con alto consumo energético (más de 1000W)",
-            "Distribuir las actividades de mayor consumo a lo largo del día",
-            "Desconectar cargadores y artefactos en stand-by"
-        ]
-    elif consumo > 200:
-        categoria = "Moderado"
-        probabilidad = 0.75
-        recomendaciones = [
-            "Reemplazar luminarias por tecnología LED eficientes",
-            "Evitar llenar el hervidor de agua completo si solo usarás una taza"
-        ]
-    else:
-        categoria = "Eficiente"
-        probabilidad = 0.92
-        recomendaciones = [
-            "¡Excelente hábito de consumo! Mantén tus equipos desenchufados",
-            "Aprovecha la luz natural durante el día"
-        ]
+    # ── 2. Consumo en kWh (declarado o estimado por artefactos) ─────────────
+    resultado_consumo = _estimar_consumo(d)
+    consumo_kwh = resultado_consumo["consumo_kwh"]
 
-    # 4. JSON de respuesta unificado
+    # ── 3. Tarifa y moneda según país ───────────────────────────────────────
+    tarifa_kwh, simbolo_moneda = _get_tarifa(d["pais"])
+    costo_estimado = round(consumo_kwh * tarifa_kwh, 2)
+    ahorro_estimado = round(costo_estimado * 0.20, 2)
+
+    # ── 4. Clasificación energética ─────────────────────────────────────────
+    categoria = _clasificar(consumo_kwh)
+
+    # ── 5. Recomendaciones contextuales ─────────────────────────────────────
+    recomendaciones = _recomendaciones_contextuales(categoria, d)
+
+    # ── 6. Código ISO de moneda y Narrativa con LLM ─────────────────────────
+    moneda_iso = (
+        calculos.REFERENCIA.get("paises", {})
+        .get(d["pais"], {})
+        .get("moneda", "")
+    )
+
+    resumen_para_llm = {
+        "total_kwh_mes": consumo_kwh,
+        "total_clp_mes": costo_estimado,
+        "ahorro_potencial_clp_mes": ahorro_estimado,
+        "simbolo_moneda": simbolo_moneda,
+        "moneda": moneda_iso,
+    }
+    narrativa = generar_narrativa(resumen_para_llm)
+
+    # ── 8. Respuesta estructurada ────────────────────────────────────────────
     return jsonify({
-        "categoria": categoria,
-        "probabilidad": probabilidad,
-        "costo_estimado_mensual": costo_estimado,
-        "recomendaciones": recomendaciones
+        # Campos primarios (nuevos nombres que el frontend ya consume)
+        "status":          "success",
+        "consumo_kwh":     round(consumo_kwh, 1),
+        "costo_estimado":  costo_estimado,
+        "ahorro_estimado": ahorro_estimado,
+        "simbolo_moneda":  simbolo_moneda,
+        "moneda":          moneda_iso,
+        "categoria":       categoria,
+        "fuente_consumo":  resultado_consumo["fuente"],
+        "desglose":        resultado_consumo["desglose"],
+        "recomendaciones": recomendaciones,
+        "narrativa":       narrativa,
+        # Aliases de compatibilidad (versiones previas del frontend los esperan)
+        "costo_estimado_mensual":   costo_estimado,
+        "total_kwh_mes":            round(consumo_kwh, 1),
+        "total_clp_mes":            costo_estimado,
+        "ahorro_potencial_clp_mes": ahorro_estimado,
+        "probabilidad":             0.90 if categoria == "Eficiente" else 0.75 if categoria == "Moderado" else 0.82,
     })
 
 if __name__ == "__main__":

@@ -1,982 +1,628 @@
-// ════════════════════════════════════════════════════════════
-//  VólticvS — app.js (Arquitectura ≤ 2 llamadas LLM/sesión)
-//  Módulos: TipoInmueble, SelectorKwh, Electrodomésticos, Submit
-// ════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
+   VólticvS — app.js v9.0  |  BOLETA ENERGÉTICA + RESET TOTAL
+   Engine del Wizard, Avatar, Factura de Impresión
+   ═══════════════════════════════════════════════════════════ */
 
-const formulario       = document.getElementById("formularioEnergia");
-const resultadosSeccion = document.getElementById("resultados");
-const meterValue        = document.getElementById("meterValue");
+'use strict';
 
-// ── Estado del módulo ──────────────────────────────────────────────────────────
-let _paisesCache     = null;
-const PAIS_DEFAULT   = "CL";
-const TARIFA_FALLBACK = 0.75;
+let currentStep = 1;
+const TOTAL_STEPS = 4;
+let _paisesCache = null;
+const PAIS_DEFAULT = 'CL';
 
-// Estado: tipo de inmueble (asignado directamente por botón, sin LLM)
-let _tipoInmueble        = "Casa";
-let _textoOtroInmueble   = "";   // Texto libre del campo "Otro"
+/* ── Todos los contadores arrancan en 0 al iniciar/resetear ── */
+const COUNTER_ZEROS = {
+  inputDormitorios: 0,
+  inputVentanas:    0,
+  inputMayores:     0,
+  inputMenores:     0,
+  lavadoFrecuencia: 0,
+  refrigerador:     0,
+  freezer:          0,
+  tv:               0,
+  tvFrecuencia:     0
+};
 
-// Estado: consumo kWh (prioridad: exacto > rango > calculado > fallback)
-let _kwhRangoSeleccionado = null;   // Valor numérico del rango elegido (null = no elegido)
-let _kwhRango             = "ninguno"; // Etiqueta del rango ("bajo","medio","alto","nose","boleta")
-const KWH_FALLBACK        = 250;    // Promedio estándar cuando el usuario no sabe
+/* Lista de equipos con toggle para construir el desglose */
+const EQUIPOS_TOGGLE = [
+  { id: 'aireAcondicionado',    payloadKey: 'aire_acondicionado',       nombre: 'Aire Acondicionado / Climatización', detalle: 'Equipos de refrigeración o calefacción eléctrica' },
+  { id: 'calefaccionElectrica', payloadKey: 'calefaccion_electrica',    nombre: 'Calefacción Eléctrica',              detalle: 'Estufas, radiadores, calefactores' },
+  { id: 'aguaCalienteElectrica',payloadKey: 'agua_caliente_electrica',  nombre: 'Calentador de Agua / Termotanque (Eléctrico)', detalle: 'Uso de electricidad para calentar agua' },
+  { id: 'secarropasElectrico',  payloadKey: 'secarropas_electrico',     nombre: 'Secarropas Eléctrico',               detalle: 'Secado de prendas' },
+  { id: 'hornoElectrico',       payloadKey: 'horno_electrico',          nombre: 'Horno / Anafe Eléctrico',            detalle: 'Cocción eléctrica' }
+];
 
-// ── Validación HTML5 en español ────────────────────────────────────────────────
-document.addEventListener("invalid", (e) => {
-  const campo = e.target;
-  if (campo.tagName !== "INPUT" || campo.type !== "number") return;
-  const val = parseFloat(campo.value);
-  const max = parseFloat(campo.getAttribute("max"));
-  const min = parseFloat(campo.getAttribute("min") ?? "-Infinity");
-  if (!isNaN(max) && val > max) {
-    campo.setCustomValidity(`El valor debe ser menor o igual a ${max} horas.`);
-  } else if (!isNaN(min) && val < min) {
-    campo.setCustomValidity(`El valor debe ser mayor o igual a ${min}.`);
-  } else if (campo.validity.valueMissing) {
-    campo.setCustomValidity("Este campo es obligatorio.");
-  } else {
-    campo.setCustomValidity("Valor no válido.");
+// ── 1. DOM REFERENCES ───────────────────────────────────────
+const wizardSteps    = document.querySelectorAll('.wizard-step');
+const progressSteps  = document.querySelectorAll('.progress-step');
+const progressFill   = document.getElementById('progressFill');
+const voltiFrame     = document.getElementById('voltiFrame');
+const voltiAvatarImg = document.getElementById('voltiAvatarImg');
+const voltiBubble    = document.getElementById('voltiBubble');
+const voltiBubbleText= document.getElementById('voltiBubbleText');
+const voltiMood      = document.getElementById('voltiMood');
+const resultadosSeccion = document.getElementById('resultados');
+
+// ── 2. ESTADOS DE VOLTI ──────────────────────────────────────
+// Nota: saludando.png no existe en el proyecto; usamos impatado.png para el inicio.
+const VOLTI_ASSETS = {
+  1:       '/static/img/volti/impatado.png',
+  2:       '/static/img/volti/preguntas.png',
+  3:       '/static/img/volti/bien.png',
+  4:       '/static/img/volti/bien.png',
+  submit:  '/static/img/volti/preguntas.png',
+  results: '/static/img/volti/felicidades.png',
+  error:   '/static/img/volti/error.png'
+};
+
+const VOLTI_MESSAGES = {
+  1:       '¡Hola! Soy <strong>Volti</strong>, tu asesor energético. Indícame tu ubicación y tarifa para comenzar.',
+  2:       '¡Excelente! Ahora cuéntame sobre tu tipo de vivienda y la cantidad de habitantes.',
+  3:       'Selecciona los artefactos de mayor consumo que utilizas en tu hogar.',
+  4:       'Indica la frecuencia con la que usas tus electrodomésticos.',
+  submit:  '⚡ Calculando tu consumo estimado... ¡Dame un momento!',
+  results: '¡Aquí están tus resultados! Revisa las recomendaciones para ahorrar más.',
+  error:   'Oops, parece que faltan algunos datos. Por favor, revisa la información.'
+};
+
+const VOLTI_MOODS = {
+  1: 'Saludando', 2: 'Analizando', 3: 'Atento', 4: 'Entusiasmado',
+  submit: 'Calculando', results: 'Celebrando', error: 'Preocupado'
+};
+
+// ── 3. AVATAR ────────────────────────────────────────────────
+function updateVoltiMessage(key) {
+  const message = VOLTI_MESSAGES[key] || VOLTI_MESSAGES[1];
+  const imgSrc  = VOLTI_ASSETS[key]   || VOLTI_ASSETS[1];
+  const mood    = VOLTI_MOODS[key]    || VOLTI_MOODS[1];
+
+  if (voltiAvatarImg) {
+    voltiAvatarImg.style.opacity = '0';
+    setTimeout(() => {
+      voltiAvatarImg.src = imgSrc;
+      voltiAvatarImg.style.opacity = '1';
+    }, 150);
   }
-}, true);
-
-document.addEventListener("input", (e) => {
-  const campo = e.target;
-  if (campo.tagName === "INPUT" && campo.type === "number") {
-    campo.setCustomValidity("");
+  if (voltiFrame) {
+    voltiFrame.classList.remove('pop');
+    void voltiFrame.offsetWidth;
+    voltiFrame.classList.add('pop');
+    setTimeout(() => voltiFrame.classList.remove('pop'), 400);
   }
-}, true);
-
-// Agregar "veces por semana" a artefactos con horas de uso
-document.querySelectorAll(".item.item--con-horas").forEach((item) => {
-  const campos = item.querySelector(".item__fields");
-  if (campos && !item.querySelector(".veces-semana")) {
-    const etiqueta = document.createElement("label");
-    etiqueta.innerHTML = 'Veces por semana <input type="number" min="1" max="7" value="7" class="veces-semana">';
-    campos.appendChild(etiqueta);
+  if (voltiBubble && voltiBubbleText) {
+    voltiBubble.classList.remove('pulse');
+    void voltiBubble.offsetWidth;
+    voltiBubble.classList.add('pulse');
+    voltiBubbleText.innerHTML = message;
+    setTimeout(() => voltiBubble.classList.remove('pulse'), 450);
   }
+  if (voltiMood) voltiMood.textContent = mood;
+}
+
+// ── 4. WIZARD Y PROGRESS BAR ─────────────────────────────────
+function updateProgressBar() {
+  const percent = ((currentStep - 1) / (TOTAL_STEPS - 1)) * 100;
+  if (progressFill) progressFill.style.width = percent + '%';
+
+  progressSteps.forEach((step, index) => {
+    const stepNum = index + 1;
+    step.classList.remove('progress-step--active', 'progress-step--done');
+    if (stepNum === currentStep)       step.classList.add('progress-step--active');
+    else if (stepNum < currentStep)    step.classList.add('progress-step--done');
+  });
+}
+
+function showStep(stepNumber) {
+  wizardSteps.forEach(step => {
+    step.classList.toggle('wizard-step--active', parseInt(step.dataset.step) === stepNumber);
+  });
+  if (resultadosSeccion) resultadosSeccion.hidden = true;
+  updateProgressBar();
+  updateVoltiMessage(stepNumber);
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// ── 4B. VALIDACIÓN ──────────────────────────────────────────
+function clearError(el) {
+  if (!el) return;
+  el.classList.remove('input-error', 'shake');
+  el.parentNode?.querySelector('.error-msg')?.remove();
+}
+
+function showError(el, mensaje) {
+  if (!el) return;
+  el.classList.add('input-error', 'shake');
+  let msg = el.parentNode?.querySelector('.error-msg');
+  if (!msg && el.parentNode) {
+    msg = document.createElement('span');
+    msg.className = 'error-msg';
+    el.parentNode.appendChild(msg);
+  }
+  if (msg) msg.textContent = mensaje;
+  setTimeout(() => el.classList.remove('shake'), 400);
+}
+
+function validarPaso(pasoActual) {
+  let valido = true;
+  document.querySelector(`.wizard-step[data-step="${pasoActual}"]`)
+    ?.querySelectorAll('.input-error').forEach(clearError);
+
+  if (pasoActual === 1) {
+    const sel = document.getElementById('pais') || document.getElementById('selectPais');
+    if (sel && sel.hasAttribute('required') && !sel.value?.trim()) {
+      showError(sel, 'Por favor, selecciona un país.');
+      valido = false;
+    }
+  }
+  if (!valido) updateVoltiMessage('error');
+  return valido;
+}
+
+function nextStep() {
+  if (currentStep >= TOTAL_STEPS) return;
+  if (!validarPaso(currentStep)) return;
+  currentStep++;
+  showStep(currentStep);
+  saveState();
+}
+
+function prevStep() {
+  if (currentStep <= 1) return;
+  currentStep--;
+  showStep(currentStep);
+}
+
+// ── 5. INTERACTIVIDAD DE COMPONENTES ────────────────────────
+let tipoInmuebleSeleccionado = 'Casa';
+
+document.querySelectorAll('.vivienda-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.vivienda-card').forEach(c => c.classList.remove('vivienda-card--active'));
+    card.classList.add('vivienda-card--active');
+    tipoInmuebleSeleccionado = card.dataset.value;
+  });
 });
 
-// ════════════════════════════════════════════════════════════
-//  MÓDULO 1: PAÍSES Y TARIFA
-// ════════════════════════════════════════════════════════════
+document.querySelectorAll('.equip-toggle').forEach(toggle => {
+  toggle.addEventListener('change', e => {
+    e.target.closest('.equip-item')
+      ?.classList.toggle('equip-item--on', e.target.checked);
+  });
+});
 
+document.querySelectorAll('.counter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const input = document.getElementById(btn.dataset.target);
+    if (!input) return;
+    let val = parseInt(input.value) || 0;
+    const min = parseInt(input.min) || 0;
+    const max = parseInt(input.max) || 999;
+    if (btn.classList.contains('counter-btn--plus') && val < max) val++;
+    else if (btn.classList.contains('counter-btn--minus') && val > min) val--;
+    input.value = val;
+    clearError(input);
+  });
+});
+
+// ── 6. PAÍSES ────────────────────────────────────────────────
 async function cargarPaises() {
-  const selectPais = document.getElementById("selectPais");
+  const selectPais = document.getElementById('pais') || document.getElementById('selectPais');
+  if (!selectPais) return;
   try {
-    const respuesta = await fetch("/api/paises");
-    const paises    = await respuesta.json();
-    _paisesCache    = paises;
-    selectPais.innerHTML = "";
+    const res   = await fetch('/api/paises');
+    const paises = await res.json();
+    _paisesCache = paises;
+
+    selectPais.innerHTML = '<option value="">Selecciona un país...</option>';
     Object.entries(paises).forEach(([codigo, datos]) => {
-      const opcion = document.createElement("option");
-      opcion.value = codigo;
-      opcion.textContent = `${datos.nombre} (${datos.moneda})`;
-      selectPais.appendChild(opcion);
+      const opt = document.createElement('option');
+      opt.value = codigo;
+      opt.textContent = `${datos.nombre} (${datos.moneda})`;
+      selectPais.appendChild(opt);
     });
+
+    // Siempre aplicar default al iniciar (resetearTodo ya limpió estado)
     selectPais.value = PAIS_DEFAULT;
-    actualizarTarifaPorPais(paises, PAIS_DEFAULT);
-    selectPais.addEventListener("change", () => actualizarTarifaPorPais(paises, selectPais.value));
-  } catch (error) {
+    actualizarInfoPais(paises, PAIS_DEFAULT);
+
+    selectPais.addEventListener('change', () => {
+      actualizarInfoPais(paises, selectPais.value);
+      saveState();
+    });
+  } catch {
     selectPais.innerHTML = '<option value="">No se pudo cargar la lista de países</option>';
   }
 }
 
-function actualizarTarifaPorPais(paises, codigo) {
-  const datos       = paises[codigo];
+function actualizarInfoPais(paises, codigo) {
+  const datos = paises[codigo];
   if (!datos) return;
-  const campoTarifa = document.getElementById("tarifaClp");
-  const fuenteTexto = document.getElementById("fuenteTarifa");
-  const labelMoneda = document.getElementById("labelMoneda");
-  const hintTarifa  = document.getElementById("hintTarifa");
-  const tarifa      = datos.tarifa_kwh_referencial ?? TARIFA_FALLBACK;
-  campoTarifa.value = tarifa;
-  const simbolo = datos.simbolo || "";
-  const moneda  = datos.moneda  || "";
-  if (labelMoneda) {
-    labelMoneda.textContent = moneda
-      ? `(${simbolo ? simbolo + " · " : ""}${moneda})`
-      : "";
-  }
-  window._monedaActiva  = moneda;
-  window._simboloActivo = simbolo;
-  window._paisActivo    = codigo;
-  if (hintTarifa) {
-    const monedaLabel = simbolo ? `${simbolo} (${moneda})` : (moneda || "moneda local");
-    hintTarifa.textContent = datos.fuente
-      ? `Tarifa referencial en ${monedaLabel} — Fuente: ${datos.fuente}. Súbela tu boleta para mayor exactitud.`
-      : `Tarifa referencial en ${monedaLabel}. Súbela tu boleta para mayor exactitud.`;
-  }
-  if (fuenteTexto) fuenteTexto.textContent = datos.fuente
-    ? `Fuente: ${datos.fuente}. Verifica el valor vigente ahí o usa el de tu boleta.`
-    : "";
-}
-cargarPaises();
+  window._monedaActiva     = datos.moneda  || '';
+  window._simboloActivo    = datos.simbolo || '';
+  window._paisActivo       = codigo;
+  window._nombrePaisActivo = datos.nombre  || codigo;
 
-// ════════════════════════════════════════════════════════════
-//  MÓDULO 1b: PASOS WIZARD — Ubicación & Tarifa
-// ════════════════════════════════════════════════════════════
+  // Galones para sistema imperial (US, PR), Litros para métrico
+  const esImperial = (codigo === 'US' || codigo === 'PR');
+  window._flagGalones = esImperial ? 1 : 2;
+  window._unidadAgua  = esImperial ? 'Galones' : 'Litros';
 
-function initUbiSteps() {
-  const step1      = document.getElementById("ubiStep1");
-  const step2      = document.getElementById("ubiStep2");
-  const body1      = document.getElementById("ubiStep1Body");
-  const body2      = document.getElementById("ubiStep2Body");
-  const toggle1    = document.getElementById("toggleStep1");
-  const toggle2    = document.getElementById("toggleStep2");
-  const btnSig     = document.getElementById("btnIrPaso2");
-  const icon1      = toggle1 ? toggle1.querySelector(".ubi-step__toggle-icon") : null;
-  const icon2      = toggle2 ? toggle2.querySelector(".ubi-step__toggle-icon") : null;
-
-  function expandStep(step, body, toggle, icon) {
-    step.classList.remove("ubi-step--collapsed");
-    body.hidden = false;
-    if (toggle) toggle.setAttribute("aria-expanded", "true");
-    if (icon)  icon.textContent = "\u25b2";
-  }
-
-  function collapseStep(step, body, toggle, icon) {
-    step.classList.add("ubi-step--collapsed");
-    body.hidden = true;
-    if (toggle) toggle.setAttribute("aria-expanded", "false");
-    if (icon)  icon.textContent = "\u25bc";
-  }
-
-  if (toggle1) {
-    toggle1.addEventListener("click", () => {
-      if (body1.hidden) {
-        expandStep(step1, body1, toggle1, icon1);
-      } else {
-        collapseStep(step1, body1, toggle1, icon1);
-      }
-    });
-  }
-
-  if (toggle2) {
-    toggle2.addEventListener("click", () => {
-      if (body2.hidden) {
-        expandStep(step2, body2, toggle2, icon2);
-      } else {
-        collapseStep(step2, body2, toggle2, icon2);
-      }
-    });
-  }
-
-  if (btnSig) {
-    btnSig.addEventListener("click", () => {
-      collapseStep(step1, body1, toggle1, icon1);
-      expandStep(step2, body2, toggle2, icon2);
-      step2.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }
-
-  const provinciaInput = document.getElementById("selectProvincia");
-  if (provinciaInput) {
-    provinciaInput.addEventListener("input", () => {
-      window._provinciaActiva = provinciaInput.value.trim();
-    });
-  }
-}
-initUbiSteps();
-
-// ════════════════════════════════════════════════════════════
-//  MÓDULO 2: TIPO DE INMUEBLE (Asignación directa, sin LLM)
-// ════════════════════════════════════════════════════════════
-
-function initTipoInmueble() {
-  const btns         = document.querySelectorAll(".tipo-inmueble-btn");
-  const otroWrap     = document.getElementById("tipoOtroWrap");
-  const otroInput    = document.getElementById("tipoOtroInput");
-
-  if (!btns.length) return;
-
-  btns.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      // Desmarcar todos
-      btns.forEach((b) => b.classList.remove("tipo-inmueble-btn--active"));
-      // Marcar el clickeado
-      btn.classList.add("tipo-inmueble-btn--active");
-
-      const valor = btn.dataset.valor;
-
-      if (valor === "otro") {
-        // Mostrar campo de texto libre
-        otroWrap.hidden = false;
-        otroWrap.classList.add("selector-reveal");
-        setTimeout(() => otroWrap.classList.remove("selector-reveal"), 400);
-        otroInput.focus();
-        // Marcar como pendiente de interpretación
-        _tipoInmueble = ""; // Se resolverá en interpretarCamposLibres()
-      } else {
-        // Asignación directa — sin ninguna llamada a la API
-        _tipoInmueble      = valor;
-        _textoOtroInmueble = "";
-        otroWrap.hidden    = true;
-        otroInput.value    = "";
-      }
-    });
-  });
-
-  // Actualizar el texto libre en tiempo real
-  if (otroInput) {
-    otroInput.addEventListener("input", () => {
-      _textoOtroInmueble = otroInput.value.trim();
-    });
-  }
-}
-initTipoInmueble();
-
-// ════════════════════════════════════════════════════════════
-//  MÓDULO 3: SELECTOR kWh POR RANGOS (Asignación directa)
-// ════════════════════════════════════════════════════════════
-
-function initSelectorKwh() {
-  const btns       = document.querySelectorAll(".kwh-range-btn");
-  const exactWrap  = document.getElementById("kwhExactWrap");
-  const exactInput = document.getElementById("kwhExactoInput");
-  const badge      = document.getElementById("kwhRangoBadge");
-  const badgeText  = document.getElementById("kwhRangoBadgeText");
-
-  if (!btns.length) return;
-
-  const LABEL_MAP = {
-    bajo:   "🟢 Bajo — ~100 kWh/mes (Depto. o mínimo)",
-    medio:  "🟡 Medio — ~225 kWh/mes (Casa promedio)",
-    alto:   "🟠 Alto — ~400 kWh/mes (Casa grande)",
-    nose:   "🔴 No lo sé — usando 250 kWh (promedio estándar)",
-    boleta: "✏️ Consumo exacto de boleta",
-  };
-
-  btns.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      // Desmarcar todos
-      btns.forEach((b) => b.classList.remove("kwh-range-btn--active"));
-      btn.classList.add("kwh-range-btn--active");
-
-      const rango = btn.dataset.rango;
-      const kwh   = parseFloat(btn.dataset.kwh);
-      _kwhRango   = rango;
-
-      if (rango === "boleta") {
-        // Mostrar input numérico exacto
-        exactWrap.hidden = false;
-        exactWrap.classList.add("selector-reveal");
-        setTimeout(() => exactWrap.classList.remove("selector-reveal"), 400);
-        exactInput.focus();
-        _kwhRangoSeleccionado = null; // Se leerá del input al submit
-        if (badge) badge.hidden = true;
-      } else {
-        // Asignación directa del valor de rango — sin ninguna llamada a la API
-        exactWrap.hidden      = true;
-        exactInput.value      = "";
-        _kwhRangoSeleccionado = kwh;
-        // Mostrar badge informativo
-        if (badge && badgeText) {
-          badgeText.textContent = LABEL_MAP[rango] || `${kwh} kWh/mes`;
-          badge.hidden = false;
-          badge.className = `kwh-rango-badge kwh-rango-badge--${rango}`;
-        }
-      }
-    });
-  });
-
-  // Actualizar valor al escribir en el input exacto
-  if (exactInput) {
-    exactInput.addEventListener("input", () => {
-      const v = parseFloat(exactInput.value);
-      _kwhRangoSeleccionado = (!isNaN(v) && v > 0) ? v : null;
-      if (badge && badgeText && _kwhRangoSeleccionado) {
-        badgeText.textContent = `✏️ Boleta: ${_kwhRangoSeleccionado} kWh/mes`;
-        badge.hidden = false;
-        badge.className = "kwh-rango-badge kwh-rango-badge--boleta";
-      }
-    });
-  }
-}
-initSelectorKwh();
-
-// ════════════════════════════════════════════════════════════
-//  MÓDULO 4: ELECTRODOMÉSTICOS (Checkboxes, condicionales)
-// ════════════════════════════════════════════════════════════
-
-// Habilitar/deshabilitar campos según checkbox marcado
-document.querySelectorAll(".item").forEach((item) => {
-  const check = item.querySelector(".chk-artefacto, .chk-iluminacion");
-  if (!check) return;
-  check.addEventListener("change", () => {
-    item.classList.toggle("activo", check.checked);
-  });
-});
-
-// Mostrar/ocultar bloques condicionales (CCTV, hervidor)
-function toggleCondicional(nombreRadio, valorQueMuestra, contenedorId) {
-  const contenedor = document.getElementById(contenedorId);
-  document.querySelectorAll(`input[name="${nombreRadio}"]`).forEach((radio) => {
-    radio.addEventListener("change", () => {
-      contenedor.hidden = radio.value !== valorQueMuestra || !radio.checked;
-    });
-  });
-}
-toggleCondicional("cctv",     "si", "camposCctv");
-toggleCondicional("hervidor", "si", "camposHervidor");
-
-// Artefactos personalizados dinámicos
-const listaPersonalizados    = document.getElementById("listaPersonalizados");
-const templatePersonalizado  = document.getElementById("templatePersonalizado");
-
-document.getElementById("btnAgregarPersonalizado").addEventListener("click", () => {
-  const nodo  = templatePersonalizado.content.cloneNode(true);
-  const fila  = nodo.querySelector(".personalizado");
-  const campoWatts = fila.querySelector(".p-watts");
-
-  fila.querySelectorAll(".btn-nivel").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      campoWatts.value = btn.dataset.watts;
-      fila.querySelectorAll(".btn-nivel").forEach((b) => b.classList.remove("activo"));
-      btn.classList.add("activo");
-    });
-  });
-  campoWatts.addEventListener("input", () => {
-    fila.querySelectorAll(".btn-nivel").forEach((b) => b.classList.remove("activo"));
-  });
-
-  fila.querySelector(".btn--eliminar").addEventListener("click", () => fila.remove());
-  listaPersonalizados.appendChild(nodo);
-
-  const filaInsertada = listaPersonalizados.lastElementChild;
-  filaInsertada.classList.add("personalizado--nuevo");
-  setTimeout(() => filaInsertada.classList.remove("personalizado--nuevo"), 1700);
-  filaInsertada.scrollIntoView({ behavior: "smooth", block: "center" });
-  const campoNombre = filaInsertada.querySelector(".p-nombre");
-  if (campoNombre) setTimeout(() => campoNombre.focus(), 300);
-});
-
-// ════════════════════════════════════════════════════════════
-//  MÓDULO 5: RECOLECCIÓN DE DATOS
-// ════════════════════════════════════════════════════════════
-
-function recolectarElectrodomesticos() {
-  const items = [];
-  document.querySelectorAll(".item[data-clave]").forEach((item) => {
-    const check = item.querySelector(".chk-artefacto");
-    if (!check.checked) return;
-    const quedaConectadoInput = item.querySelector(".queda-conectado");
-    const vecesSemanaInput    = item.querySelector(".veces-semana");
-    items.push({
-      clave:           item.dataset.clave,
-      cantidad:        parseFloat(item.querySelector(".cantidad").value) || 0,
-      horas:           parseFloat(item.querySelector(".horas").value) || 0,
-      queda_conectado: quedaConectadoInput ? quedaConectadoInput.checked : true,
-      veces_semana:    vecesSemanaInput ? parseFloat(vecesSemanaInput.value) || 7 : 7,
-    });
-  });
-  return items;
-}
-
-function recolectarIluminacion() {
-  const items = [];
-  document.querySelectorAll(".item[data-tipo]").forEach((item) => {
-    const check = item.querySelector(".chk-iluminacion");
-    if (!check.checked) return;
-    items.push({
-      tipo:     item.dataset.tipo,
-      cantidad: parseFloat(item.querySelector(".cantidad").value) || 0,
-      horas:    parseFloat(item.querySelector(".horas").value) || 0,
-    });
-  });
-  return items;
-}
-
-function recolectarPersonalizados() {
-  const items = [];
-  listaPersonalizados.querySelectorAll(".personalizado").forEach((fila) => {
-    const nombre = fila.querySelector(".p-nombre").value.trim();
-    const watts  = parseFloat(fila.querySelector(".p-watts").value);
-    if (!nombre || !watts) return;
-    items.push({
-      nombre,
-      watts,
-      horas:    parseFloat(fila.querySelector(".p-horas").value) || 0,
-      cantidad: parseFloat(fila.querySelector(".p-cantidad").value) || 1,
-    });
-  });
-  return items;
+  // Actualizar dinámicamente en la UI si hay elementos de moneda o unidades
+  document.querySelectorAll('.simbolo-moneda').forEach(el => (el.textContent = window._simboloActivo));
+  document.querySelectorAll('.codigo-moneda').forEach(el => (el.textContent = window._monedaActiva));
+  document.querySelectorAll('.unidad-agua').forEach(el => (el.textContent = window._unidadAgua));
 }
 
 // ════════════════════════════════════════════════════════════
-//  MÓDULO 6: CÁLCULO LOCAL DE CONSUMO (kWh determinista)
+//  ── 7. RESET TOTAL (DOMContentLoaded + Nuevo Cálculo) ──
 // ════════════════════════════════════════════════════════════
+function resetearTodo() {
+  // 1. Limpiar localStorage
+  localStorage.removeItem('volticvs_state');
 
-const WATTS_MAP = {
-  refrigerador: 150, congeladora: 200, lavadora: 500, secadora_ropa: 2500,
-  horno_electrico: 2000, microondas: 1200, olla_arrocera: 700,
-  cafetera_electrica: 800, licuadora: 300, tostadora: 800,
-  campana_extractora: 120, cuchillo_electrico: 100, exprimidor_electrico: 150,
-  abrelatas_electrico: 60, television: 100, decodificador_tv: 15,
-  computador_escritorio: 150, router_wifi: 8, cargador_celular: 5,
-  cargador_tablet: 10, cargador_notebook: 65, ventilador: 50,
-  calefactor_electrico: 1500, aspiradora: 1400, plancha_ropa: 1000,
-  secador_pelo: 1200, porton_electrico: 300,
-};
-const WATTS_TIPO = {
-  led: 9, incandescente: 60, fluorescente_tubo: 36,
-  fluorescente_ahorro: 15, halogeno: 42, neon_exterior: 20,
-};
+  // 2. Resetear todos los inputs de texto a vacío
+  document.querySelectorAll('input[type="text"]').forEach(el => (el.value = ''));
 
-function wattsDesdeDom(itemEl) {
-  const span  = itemEl.querySelector(".item__watts");
-  if (!span) return null;
-  const match = span.textContent.match(/~?\s*(\d+(?:\.\d+)?)\s*W/i);
-  return match ? parseFloat(match[1]) : null;
-}
+  // 3. Resetear número libre (consumo kWh)
+  const inputConsumo = document.getElementById('inputConsumo');
+  if (inputConsumo) inputConsumo.value = '';
 
-function calcularConsumoDesdeElectrodomesticos() {
-  let total = 0;
-  document.querySelectorAll(".item[data-clave]").forEach((itemEl) => {
-    const check = itemEl.querySelector(".chk-artefacto");
-    if (!check || !check.checked) return;
-    const clave    = itemEl.dataset.clave;
-    const watts    = wattsDesdeDom(itemEl) ?? WATTS_MAP[clave] ?? 100;
-    const cantidad = parseFloat(itemEl.querySelector(".cantidad")?.value) || 1;
-    const horas    = parseFloat(itemEl.querySelector(".horas")?.value)    || 0;
-    const vecesSem = parseFloat(itemEl.querySelector(".veces-semana")?.value) || 7;
-    const diasMes  = (vecesSem / 7) * 30;
-    total += (watts * cantidad * horas * diasMes) / 1000;
-  });
-  document.querySelectorAll(".item[data-tipo]").forEach((itemEl) => {
-    const check = itemEl.querySelector(".chk-iluminacion");
-    if (!check || !check.checked) return;
-    const tipo     = itemEl.dataset.tipo;
-    const watts    = wattsDesdeDom(itemEl) ?? WATTS_TIPO[tipo] ?? 10;
-    const cantidad = parseFloat(itemEl.querySelector(".cantidad")?.value) || 1;
-    const horas    = parseFloat(itemEl.querySelector(".horas")?.value)    || 0;
-    total += (watts * cantidad * horas * 30) / 1000;
-  });
-  recolectarPersonalizados().forEach((p) => {
-    total += (p.watts * p.cantidad * p.horas * 30) / 1000;
-  });
-  return total;
-}
-
-/**
- * Determina el consumo final a enviar en el payload.
- * Prioridad estricta:
- *  1. Valor exacto de boleta ingresado por el usuario (_kwhRango === "boleta")
- *  2. Valor de rango seleccionado (_kwhRangoSeleccionado > 0)
- *  3. Consumo calculado desde electrodomésticos marcados (> 0)
- *  4. Fallback estándar 250 kWh (cuando el usuario no sabe ni marcó nada)
- */
-function determinarConsumoFinal() {
-  // 1. Exacto de boleta
-  if (_kwhRango === "boleta" && _kwhRangoSeleccionado && _kwhRangoSeleccionado > 0) {
-    return _kwhRangoSeleccionado;
-  }
-  // 2. Rango predefinido (bajo/medio/alto/nose)
-  if (_kwhRangoSeleccionado !== null && _kwhRangoSeleccionado > 0) {
-    const calculado = calcularConsumoDesdeElectrodomesticos();
-    // Si el usuario marcó artefactos Y eligió un rango, usamos el mayor como referencia
-    return Math.max(_kwhRangoSeleccionado, calculado > 0 ? calculado : 0);
-  }
-  // 3. Calculado desde electrodomésticos
-  const calculado = calcularConsumoDesdeElectrodomesticos();
-  if (calculado > 0) return calculado;
-  // 4. Fallback estándar
-  return KWH_FALLBACK;
-}
-
-// ════════════════════════════════════════════════════════════
-//  MÓDULO 7: LLAMADA OPCIONAL #1 — Interpretar campo libre
-//  Solo se ejecuta si el usuario escribió texto en "Otro..."
-// ════════════════════════════════════════════════════════════
-
-async function interpretarCamposLibres() {
-  // Solo si el usuario eligió "Otro" y escribió algo
-  if (!_textoOtroInmueble || _tipoInmueble !== "") {
-    return; // Ya tiene valor directo, no necesita interpretación
-  }
-  try {
-    const resp = await fetch("/api/interpretar-campo", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ campo: "tipo_inmueble", texto: _textoOtroInmueble }),
-    });
-    const data = await resp.json();
-    _tipoInmueble = data.valor_mapeado || "Casa";
-  } catch {
-    _tipoInmueble = "Casa"; // Fallback silencioso
-  }
-}
-
-// ════════════════════════════════════════════════════════════
-//  MÓDULO 8: ANIMACIÓN DEL MEDIDOR HERO
-// ════════════════════════════════════════════════════════════
-
-function animarMedidor(valorFinal) {
-  const valorInicial = parseFloat(meterValue.textContent) || 0;
-  const duracionMs   = 700;
-  const inicio       = performance.now();
-  function paso(ahora) {
-    const progreso   = Math.min((ahora - inicio) / duracionMs, 1);
-    const valorActual = valorInicial + (valorFinal - valorInicial) * progreso;
-    meterValue.textContent = valorActual.toFixed(1);
-    if (progreso < 1) requestAnimationFrame(paso);
-  }
-  requestAnimationFrame(paso);
-}
-
-// ════════════════════════════════════════════════════════════
-//  MÓDULO 9: SUBMIT — Llamada Final #2 al API
-//  (máximo 1 llamada LLM aquí, más la opcional anterior)
-// ════════════════════════════════════════════════════════════
-
-formulario.addEventListener("submit", async (evento) => {
-  evento.preventDefault();
-
-  // ── 0. Validación de horas en español ──────────────────────────────────────
-  let campoInvalido = null;
-  formulario.querySelectorAll("input[type='number'][max='24']").forEach((campo) => {
-    campo.setCustomValidity("");
-    const val = parseFloat(campo.value);
-    if (!isNaN(val) && val > 24) {
-      campo.setCustomValidity("Las horas de uso diarias no pueden ser mayores a 24.");
-      if (!campoInvalido) campoInvalido = campo;
-    }
-  });
-  if (campoInvalido) {
-    campoInvalido.reportValidity();
-    return;
-  }
-
-  // ── 1. Recolectar datos de electrodomésticos ────────────────────────────────
-  const electrodomesticos = recolectarElectrodomesticos();
-  const iluminacion       = recolectarIluminacion();
-  const personalizados    = recolectarPersonalizados();
-  const cantidadEquipos   = electrodomesticos.length + iluminacion.length + personalizados.length;
-
-  // ── 2. Determinar consumo final (sin LLM) ──────────────────────────────────
-  const consumoFinal = Math.max(parseFloat(determinarConsumoFinal().toFixed(1)), 10);
-
-  // ── 3. Horas alto consumo ──────────────────────────────────────────────────
-  let horasAltoConsumo = 0;
-  electrodomesticos.forEach((item) => {
-    if (["microondas", "secadora_ropa", "horno_electrico", "calefactor_electrico"].includes(item.clave)) {
-      horasAltoConsumo += item.horas;
-    }
-  });
-
-  // ── 4. Llamada Opcional #1: Interpretar texto libre (solo si aplica) ───────
-  const botonSubmit = formulario.querySelector(".btn--primary");
-  botonSubmit.disabled    = true;
-  botonSubmit.textContent = "Analizando…";
-
-  await interpretarCamposLibres(); // Solo hace fetch si hay texto libre pendiente
-
-  botonSubmit.textContent = "Calculando…";
-
-  // ── 5. Payload para la API ─────────────────────────────────────────────────
-  const payload = {
-    consumo_kwh:        consumoFinal,
-    uso_horario_pico:   horasAltoConsumo > 2,
-    cantidad_equipos:   cantidadEquipos || 1,
-    tipo_inmueble:      _tipoInmueble || "Casa",
-    horas_alto_consumo: Math.round(horasAltoConsumo),
-    rango_kwh_elegido:  _kwhRango,
-    pais:               window._paisActivo || "CL",
-    provincia:          window._provinciaActiva || "",
-  };
-
-  try {
-    // ── 6. Llamada Final #2: Análisis energético + Narrador VólticvS ──────────
-    const respuesta = await fetch("/api/analisis-energetico", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(payload),
-    });
-
-    const resultado = await respuesta.json();
-
-    // ── 7. Mostrar resultados ──────────────────────────────────────────────────
-    mostrarResultados({
-      narrativa:               `Perfil energético: ${resultado.categoria} (Certeza: ${(resultado.probabilidad * 100).toFixed(0)}%)`,
-      total_kwh_mes:           consumoFinal,
-      total_clp_mes:           resultado.costo_estimado_mensual,
-      ahorro_potencial_clp_mes: resultado.costo_estimado_mensual * 0.20,
-      recomendaciones:         resultado.recomendaciones,
-      proyeccion: {
-        ahorro_1_mes:   resultado.costo_estimado_mensual * 0.20,
-        ahorro_6_meses: (resultado.costo_estimado_mensual * 0.20) * 6,
-        ahorro_1_anio:  (resultado.costo_estimado_mensual * 0.20) * 12,
-        ahorro_5_anios: (resultado.costo_estimado_mensual * 0.20) * 60,
-      },
-      desglose: [],
-    });
-
-  } catch (error) {
-    alert("Ocurrió un problema al calcular. Revisa que la API esté corriendo.");
-    console.error(error);
-  } finally {
-    botonSubmit.disabled    = false;
-    botonSubmit.textContent = "Calcular mi consumo y ahorro";
-  }
-});
-
-// ════════════════════════════════════════════════════════════
-//  MÓDULO 10: COMPARADOR DE CATEGORÍAS
-// ════════════════════════════════════════════════════════════
-
-document.querySelectorAll(".btn--comparar").forEach((boton) => {
-  boton.addEventListener("click", async () => {
-    const item      = boton.closest(".item");
-    const horas     = parseFloat(item.querySelector(".horas").value) || 0.1;
-    const tarifa    = parseFloat(document.getElementById("tarifaClp").value) || 150;
-    const contenedor = item.querySelector(".comparador-resultado");
-
-    boton.textContent = "Comparando…";
-    try {
-      const respuesta = await fetch("/api/comparar", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ categoria: boton.dataset.categoria, horas_uso_diario: horas, tarifa_clp_kwh: tarifa }),
-      });
-      const resultado = await respuesta.json();
-      if (resultado.error) {
-        contenedor.innerHTML = `<p class="aviso">${resultado.error}</p>`;
-      } else {
-        const filas = resultado.opciones
-          .map((op) => `<tr><td>${op.nombre}</td><td>${op.watts}W</td><td>${op.kwh_mes} kWh/mes</td><td>$${op.clp_mes.toLocaleString("es-CL")}/mes</td></tr>`)
-          .join("");
-        contenedor.innerHTML = `
-          <table>
-            <thead><tr><th>Opción</th><th>Potencia</th><th>Consumo</th><th>Costo</th></tr></thead>
-            <tbody>${filas}</tbody>
-          </table>
-          <p class="aviso">⚠️ Catálogo de ejemplo — reemplazar por datos reales de retailers antes de usar como recomendación real.</p>`;
-      }
-      contenedor.hidden = false;
-    } catch (error) {
-      contenedor.innerHTML = '<p class="aviso">No se pudo comparar en este momento.</p>';
-      contenedor.hidden = false;
-    } finally {
-      boton.textContent = "Ver alternativas más eficientes";
-    }
-  });
-});
-
-// ════════════════════════════════════════════════════════════
-//  MÓDULO 11: NUEVO CÁLCULO / RESETEO PROFUNDO
-// ════════════════════════════════════════════════════════════
-
-document.getElementById("btnNuevoCalculo").addEventListener("click", () => {
-  formulario.reset();
-
-  // Resetear estado del módulo
-  _tipoInmueble        = "Casa";
-  _textoOtroInmueble   = "";
-  _kwhRangoSeleccionado = null;
-  _kwhRango            = "ninguno";
-
-  // Restablecer botones de tipo de inmueble
-  document.querySelectorAll(".tipo-inmueble-btn").forEach((b) => b.classList.remove("tipo-inmueble-btn--active"));
-  const btnCasa = document.getElementById("tipoBtn-casa");
-  if (btnCasa) btnCasa.classList.add("tipo-inmueble-btn--active");
-  const tipoOtroWrap = document.getElementById("tipoOtroWrap");
-  if (tipoOtroWrap) tipoOtroWrap.hidden = true;
-
-  // Restablecer botones de rango kWh
-  document.querySelectorAll(".kwh-range-btn").forEach((b) => b.classList.remove("kwh-range-btn--active"));
-  const kwhExactWrap = document.getElementById("kwhExactWrap");
-  if (kwhExactWrap) kwhExactWrap.hidden = true;
-  const kwhBadge = document.getElementById("kwhRangoBadge");
-  if (kwhBadge) kwhBadge.hidden = true;
-
-  // Desmarcar todos los checkboxes
-  formulario.querySelectorAll("input[type='checkbox']").forEach((chk) => {
-    chk.checked = false;
-    chk.dispatchEvent(new Event("change", { bubbles: true }));
-  });
-  document.querySelectorAll(".item.activo").forEach((item) => item.classList.remove("activo"));
-
-  // Resetear badges de pestañas
-  document.querySelectorAll(".tab-btn__badge").forEach((badge) => {
-    badge.textContent = "0";
-    badge.hidden = true;
-  });
-
-  // Resetear medidores
-  document.querySelectorAll(".meter__value").forEach((el) => { el.textContent = "000.0"; });
-  document.querySelectorAll(".submit-bar__kwh").forEach((el) => { el.textContent = "000.0 kWh"; });
-
-  // Limpiar artefactos personalizados
-  listaPersonalizados.innerHTML = "";
-
-  // Limpiar resultados comparadores
-  document.querySelectorAll(".comparador-resultado").forEach((el) => {
-    el.innerHTML = "";
-    el.hidden = true;
-  });
-
-  // Restaurar país y tarifa
-  const selectPais = document.getElementById("selectPais");
-  if (selectPais && _paisesCache) {
+  // 4. Resetear select de país al default (se aplicará tras cargar países)
+  const selectPais = document.getElementById('pais') || document.getElementById('selectPais');
+  if (selectPais) {
     selectPais.value = PAIS_DEFAULT;
-    actualizarTarifaPorPais(_paisesCache, PAIS_DEFAULT);
+    if (_paisesCache) actualizarInfoPais(_paisesCache, PAIS_DEFAULT);
   }
 
-  // Regresar a pestaña Ubicación
-  const primerTab = document.querySelector(".tab-btn");
-  if (primerTab) primerTab.click();
-
-  // Ocultar resultados
-  resultadosSeccion.hidden = true;
-  window.scrollTo({ top: 0, behavior: "smooth" });
-});
-
-// ════════════════════════════════════════════════════════════
-//  MÓDULO 12: MOSTRAR RESULTADOS
-// ════════════════════════════════════════════════════════════
-
-function mostrarResultados(resultado) {
-  resultadosSeccion.hidden = false;
-  document.getElementById("narrativa").textContent = resultado.narrativa;
-  document.getElementById("totalKwh").textContent  = `${resultado.total_kwh_mes} kWh`;
-
-  const sim    = window._simboloActivo || "$";
-  const mon    = window._monedaActiva  || "";
-  const fmtMon = (v) => `${sim} ${Number(v).toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${mon ? " " + mon : ""}`;
-
-  document.getElementById("totalClp").textContent  = fmtMon(resultado.total_clp_mes);
-  document.getElementById("ahorroClp").textContent = fmtMon(resultado.ahorro_potencial_clp_mes);
-
-  // Recomendaciones
-  const listaRecomendaciones = document.getElementById("listaRecomendaciones");
-  listaRecomendaciones.innerHTML = "";
-  if (resultado.recomendaciones && resultado.recomendaciones.length > 0) {
-    resultado.recomendaciones.forEach((frase) => {
-      const li = document.createElement("li");
-      li.textContent = frase;
-      listaRecomendaciones.appendChild(li);
-    });
-  } else {
-    const li = document.createElement("li");
-    li.textContent = "No encontramos oportunidades de ahorro adicionales con lo que marcaste — ¡ya vas bien!";
-    listaRecomendaciones.appendChild(li);
+  // 5. Toggle anual en ON (flag_anual = 1) por defecto
+  const flagAnual = document.getElementById('flagAnual');
+  if (flagAnual) {
+    flagAnual.checked = true;
+    const flagAnualLabel = document.getElementById('flagAnualLabel');
+    if (flagAnualLabel) flagAnualLabel.textContent = 'El consumo es anual';
   }
 
-  // Proyección en el tiempo
-  if (resultado.proyeccion) {
-    document.getElementById("proy1Mes").textContent   = fmtMon(resultado.proyeccion.ahorro_1_mes);
-    document.getElementById("proy6Meses").textContent = fmtMon(resultado.proyeccion.ahorro_6_meses);
-    document.getElementById("proy1Anio").textContent  = fmtMon(resultado.proyeccion.ahorro_1_anio);
-    document.getElementById("proy5Anios").textContent = fmtMon(resultado.proyeccion.ahorro_5_anios);
+  // 6. TODOS los contadores a CERO
+  Object.entries(COUNTER_ZEROS).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  });
+
+  // 7. Desmarcar todos los checkboxes excepto flagAnual (marcado en el paso 5)
+  document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    if (cb.id !== 'flagAnual') {
+      cb.checked = false;
+      cb.closest('.equip-item')?.classList.remove('equip-item--on');
+    }
+  });
+
+  // 8. Restablecer tipo de inmueble a "Casa"
+  tipoInmuebleSeleccionado = 'Casa';
+  document.querySelectorAll('.vivienda-card').forEach(card => {
+    card.classList.toggle('vivienda-card--active', card.dataset.value === 'Casa');
+  });
+
+  // 9. Limpiar errores de validación
+  document.querySelectorAll('.input-error').forEach(clearError);
+  document.querySelectorAll('.error-msg').forEach(el => el.remove());
+
+  // 10. Limpiar estado interno de resultados
+  window._lastPayload  = null;
+  window._lastResultado = null;
+
+  // 11. Ocultar sección de resultados
+  if (resultadosSeccion) {
+    resultadosSeccion.hidden = true;
+    resultadosSeccion.style.display = '';
   }
 
-  // Desglose
-  const cuerpo       = document.getElementById("desgloseBody");
-  const tablaDesglose = cuerpo.closest("table");
-  const tieneDesglose = Array.isArray(resultado.desglose) && resultado.desglose.length > 0;
+  // 12. Volver al Paso 1
+  currentStep = 1;
+  showStep(1);             // Incluye updateProgressBar() + updateVoltiMessage(1)
 
-  cuerpo.innerHTML = "";
-  if (tieneDesglose) {
-    resultado.desglose.forEach((item) => {
-      const fila  = document.createElement("tr");
-      const kwh   = item.kwh_mes_actual ?? item.kwh_mes_llenado_habitual ?? "—";
-      const ahorro = item.ahorro_clp_mes ?? 0;
-      fila.innerHTML = `<td>${item.nombre}</td><td>${kwh}</td><td>${ahorro ? fmtMon(ahorro) : "—"}</td>`;
-      cuerpo.appendChild(fila);
-    });
-  }
-  if (tablaDesglose) tablaDesglose.hidden = !tieneDesglose;
-
-  animarMedidor(resultado.total_kwh_mes);
-  resultadosSeccion.scrollIntoView({ behavior: "smooth" });
+  // 13. Scroll al inicio
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-document.getElementById("btnImprimir").addEventListener("click", () => {
-  window.print();
+// ── 8. EVENT LISTENERS ───────────────────────────────────────
+document.getElementById('btnNext1')?.addEventListener('click', nextStep);
+document.getElementById('btnNext2')?.addEventListener('click', nextStep);
+document.getElementById('btnNext3')?.addEventListener('click', nextStep);
+document.getElementById('btnPrev2')?.addEventListener('click', prevStep);
+document.getElementById('btnPrev3')?.addEventListener('click', prevStep);
+document.getElementById('btnPrev4')?.addEventListener('click', prevStep);
+
+document.getElementById('btnNuevoCalculo')?.addEventListener('click', resetearTodo);
+document.getElementById('flagAnual')?.addEventListener('change', e => {
+  const label = document.getElementById('flagAnualLabel');
+  if (label) label.textContent = e.target.checked ? 'El consumo es anual' : 'El consumo es mensual';
 });
 
-// ════════════════════════════════════════════════════════════
-//  MÓDULO 13: SUBIDA DE BOLETA — Drag & Drop + IA Extracción
-// ════════════════════════════════════════════════════════════
+// ── 8A. SUBMIT: CALCULAR CONSUMO ─────────────────────────────
+document.getElementById('btnSubmit')?.addEventListener('click', async () => {
+  updateVoltiMessage('submit');
 
-(function initBoleta() {
-  const dropzone    = document.getElementById("boletaDropzone");
-  const fileInput   = document.getElementById("boletaFile");
-  const dropContent = document.getElementById("boletaDropContent");
-  const preview     = document.getElementById("boletaPreview");
-  const actionsBar  = document.getElementById("boletaActions");
-  const btnAnalizar = document.getElementById("btnAnalizarBoleta");
-  const btnQuitar   = document.getElementById("btnQuitarBoleta");
-  const resultado   = document.getElementById("boletaResultado");
-  const errorBox    = document.getElementById("boletaError");
-  const btnAplicar  = document.getElementById("btnAplicarBoleta");
-  const kwhRow      = document.getElementById("boletaKwhRow");
-  const kwhValor    = document.getElementById("boletaKwhValor");
-  const tarifaRow   = document.getElementById("boletaTarifaRow");
-  const tarifaValor = document.getElementById("boletaTarifaValor");
-  const notaEl      = document.getElementById("boletaNota");
-  const confianzaEl = document.getElementById("boletaConfianza");
+  const v = id => document.getElementById(id);
+  const horasDiariasTv = parseFloat(v('tvFrecuencia')?.value) || 0;
 
-  let archivoActual  = null;
-  let datosExtraidos = null;
+  const datosPayload = {
+    consumo:               parseInt(v('inputConsumo')?.value || '0') || 0,
+    consumo_kwh:           parseInt(v('inputConsumo')?.value || '0') || 0,
+    flag_anual:            v('flagAnual')?.checked ? 1 : 0,
+    pais:                  v('pais')?.value || v('selectPais')?.value || window._paisActivo || 'CL',
+    estado_provincia:      v('selectProvincia')?.value || '',
+    dormitorios:           parseInt(v('inputDormitorios')?.value) || 0,
+    ventanas:              parseInt(v('inputVentanas')?.value) || 0,
+    habitantes_mayores:    parseInt(v('inputMayores')?.value) || 0,
+    habitantes_menores:    parseInt(v('inputMenores')?.value) || 0,
+    aire_acondicionado:    v('aireAcondicionado')?.checked ? 1 : 0,
+    calefaccion_electrica: v('calefaccionElectrica')?.checked ? 1 : 0,
+    agua_caliente_electrica: v('aguaCalienteElectrica')?.checked ? 1 : 0,
+    secarropas_electrico:  v('secarropasElectrico')?.checked ? 1 : 0,
+    horno_electrico:       v('hornoElectrico')?.checked ? 1 : 0,
+    agua_caliente_tamano:  0,
+    flag_galones:          window._flagGalones || 2,
+    lavado_frecuencia:     parseInt(v('lavadoFrecuencia')?.value) || 0,
+    refrigerador:          parseInt(v('refrigerador')?.value) || 0,
+    freezer:               parseInt(v('freezer')?.value) || 0,
+    luces_exterior:        0,
+    luces_interior:        0,
+    tv:                    parseInt(v('tv')?.value) || 0,
+    tv_frecuencia:         horasDiariasTv * 7,
+    tipo_inmueble:         tipoInmuebleSeleccionado
+  };
 
-  // Drag & Drop
-  dropzone.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    dropzone.classList.add("drag-over");
-  });
-  dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag-over"));
-  dropzone.addEventListener("drop", (e) => {
-    e.preventDefault();
-    dropzone.classList.remove("drag-over");
-    const file = e.dataTransfer.files[0];
-    if (file) procesarArchivo(file);
-  });
+  window._lastPayload = datosPayload;
+  console.log('Payload enviado:', datosPayload);
 
-  fileInput.addEventListener("change", () => {
-    if (fileInput.files[0]) procesarArchivo(fileInput.files[0]);
-  });
+  try {
+    let res = await fetch('/api/analisis-energetico', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datosPayload)
+    });
+    if (!res.ok) res = await fetch('/api/calcular', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datosPayload)
+    });
+    if (!res.ok) res = await fetch('/calcular', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datosPayload)
+    });
 
-  function procesarArchivo(file) {
-    const ext = file.name.split(".").pop().toLowerCase();
-    if (!["png", "jpg", "jpeg", "webp", "pdf"].includes(ext)) {
-      mostrarError("Solo se aceptan imágenes (PNG, JPG, WEBP) o PDF.");
-      return;
-    }
-    archivoActual  = file;
-    datosExtraidos = null;
-    if (ext !== "pdf") {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        preview.src = e.target.result;
-        preview.hidden = false;
-        dropContent.hidden = true;
-      };
-      reader.readAsDataURL(file);
+    if (res.ok) {
+      const resultado = await res.json();
+      mostrarResultados(resultado, datosPayload);
+      updateVoltiMessage('results');
     } else {
-      preview.hidden = true;
-      dropContent.hidden = false;
-      dropContent.querySelector(".boleta-dropzone__icon").textContent = "📋";
-      dropContent.querySelector(".boleta-dropzone__text").textContent = `PDF seleccionado: ${file.name}`;
-      dropContent.querySelector(".boleta-dropzone__hint").textContent = "Haz clic en Analizar para extraer los datos";
+      updateVoltiMessage('error');
     }
-    dropzone.classList.add("has-file");
-    actionsBar.hidden = false;
-    resultado.hidden  = true;
-    errorBox.hidden   = true;
+  } catch (e) {
+    console.error('Error conectando con la API:', e);
+    updateVoltiMessage('error');
+  }
+});
+
+// ── 8B. MOSTRAR RESULTADOS EN DOM ────────────────────────────
+function mostrarResultados(res, payload) {
+  if (resultadosSeccion) resultadosSeccion.hidden = false;
+
+  // ── Moneda: priorizar lo que devuelve el backend (ya calculado por tarifa) ──
+  const simbolo = res.simbolo_moneda || res.simbolo || window._simboloActivo || '$';
+  const moneda  = res.moneda         || window._monedaActiva || '';
+
+  // ── Valores numéricos con cadena de fallback robusta ──
+  const consumoVal = res.consumo_kwh
+    ?? res.consumo_mensual_estimado
+    ?? res.total_kwh_mes
+    ?? payload?.consumo_kwh
+    ?? payload?.consumo
+    ?? 0;
+
+  const costoVal = res.costo_estimado
+    ?? res.costo_estimado_mensual
+    ?? res.total_clp_mes
+    ?? 0;
+
+  const ahorroVal = res.ahorro_estimado
+    ?? res.ahorro_potencial_clp_mes
+    ?? res.ahorro_potencial
+    ?? (typeof costoVal === 'number' ? Math.round(costoVal * 0.2) : 0);
+
+  const categoria = res.categoria || 'Moderado';
+  let narrativa = (res.narrativa || '').replace(/CLP/g, moneda || window._monedaActiva || '');
+  if (!narrativa) {
+    narrativa = `Categoría: ${categoria}. Consumo estimado: ${consumoVal} kWh, costo aprox. ${simbolo} ${fmt(costoVal)} ${moneda}.`;
   }
 
-  btnQuitar.addEventListener("click", resetBoleta);
+  const fmt = val => (typeof val === 'number' ? val.toLocaleString('es') : val);
+  const sufijo = moneda ? ` ${moneda}` : '';
 
-  function resetBoleta() {
-    archivoActual  = null;
-    datosExtraidos = null;
-    fileInput.value = "";
-    preview.src    = "";
-    preview.hidden = true;
-    dropContent.hidden = false;
-    dropContent.querySelector(".boleta-dropzone__icon").textContent = "📄";
-    dropContent.querySelector(".boleta-dropzone__text").innerHTML =
-      'Arrastra tu boleta aquí o <span class="boleta-link">haz clic para seleccionar</span>';
-    dropContent.querySelector(".boleta-dropzone__hint").textContent = "PNG, JPG, WEBP o PDF · Máx. 10 MB";
-    dropzone.classList.remove("has-file");
-    actionsBar.hidden = true;
-    resultado.hidden  = true;
-    errorBox.hidden   = true;
-    btnAplicar.hidden = true;
+  // ── Narrativa LLM (oculta en pantalla, disponible para imprimir) ──
+  const narrativaEl = document.getElementById('narrativa');
+  if (narrativaEl) narrativaEl.textContent = narrativa;
+
+  // ── Tarjetas de resultados (con moneda correcta) ──
+  const el = id => document.getElementById(id);
+  if (el('totalKwh'))  el('totalKwh').textContent  = `${consumoVal} kWh`;
+  if (el('totalClp'))  el('totalClp').textContent  = `${simbolo} ${fmt(costoVal)}${sufijo}`.trim();
+  if (el('ahorroClp')) el('ahorroClp').textContent = `${simbolo} ${fmt(ahorroVal)}${sufijo}`.trim();
+
+  // ── 3 Métricas de resumen visual ──
+  const ahorroAnual   = typeof ahorroVal === 'number' ? Math.round(ahorroVal * 12) : 0;
+  const primeraAccion = (res.recomendaciones || [])[0]
+    || 'Desconecta artefactos en stand-by para reducir tu factura.';
+
+  if (el('metricaKwh'))    el('metricaKwh').textContent    = `${consumoVal} kWh`;
+  if (el('metricaAhorro')) el('metricaAhorro').textContent = `${simbolo} ${fmt(ahorroAnual)}${sufijo}`.trim();
+  if (el('metricaAccion')) el('metricaAccion').textContent = primeraAccion;
+
+  // ── Lista de recomendaciones ──
+  const lista = el('listaRecomendaciones');
+  if (lista) {
+    lista.innerHTML = '';
+    (res.recomendaciones || ['Revisa los artefactos conectados en horario pico.']).forEach(r => {
+      const li = document.createElement('li');
+      li.textContent = r;
+      lista.appendChild(li);
+    });
   }
 
-  btnAnalizar.addEventListener("click", async () => {
-    if (!archivoActual) return;
-    const pais = document.getElementById("selectPais")?.value || "CL";
-    btnAnalizar.disabled = true;
-    btnAnalizar.classList.add("loading");
-    btnAnalizar.innerHTML = '<span class="btn-icon">⏳</span> Analizando…';
-    errorBox.hidden  = true;
-    resultado.hidden = true;
+  // Guardar estado para la factura
+  window._lastResultado = {
+    res, consumoVal, costoVal, ahorroVal, ahorroAnual,
+    categoria, simbolo, moneda, narrativa
+  };
 
-    const formData = new FormData();
-    formData.append("boleta", archivoActual);
-    formData.append("pais", pais);
+  resultadosSeccion?.scrollIntoView({ behavior: 'smooth' });
+}
 
-    try {
-      const resp = await fetch("/api/subir-boleta", { method: "POST", body: formData });
-      const data = await resp.json();
-      if (data.error) {
-        mostrarError(data.error + (data.sugerencia ? ` 💡 ${data.sugerencia}` : ""));
-        return;
-      }
-      datosExtraidos = data;
-      mostrarResultadoBoleta(data);
+// ── 8C. FACTURA IMPRIMIBLE ───────────────────────────────────
 
-      // Si la boleta tiene kWh, aplicarlo también al selector de rangos como "boleta"
-      if (data.kwh_mes != null && data.kwh_mes > 0) {
-        _kwhRangoSeleccionado = parseFloat(data.kwh_mes);
-        _kwhRango = "boleta";
-        // Marcar visualmente el botón de boleta
-        document.querySelectorAll(".kwh-range-btn").forEach((b) => b.classList.remove("kwh-range-btn--active"));
-        const btnBoleta = document.getElementById("kwhBtn-boleta");
-        if (btnBoleta) btnBoleta.classList.add("kwh-range-btn--active");
-        const badge     = document.getElementById("kwhRangoBadge");
-        const badgeText = document.getElementById("kwhRangoBadgeText");
-        if (badge && badgeText) {
-          badgeText.textContent = `✏️ Boleta: ${_kwhRangoSeleccionado} kWh/mes`;
-          badge.hidden = false;
-          badge.className = "kwh-rango-badge kwh-rango-badge--boleta";
-        }
-      }
-    } catch (err) {
-      mostrarError("No se pudo conectar con el servidor. ¿Está corriendo la app?");
-      console.error(err);
-    } finally {
-      btnAnalizar.disabled = false;
-      btnAnalizar.classList.remove("loading");
-      btnAnalizar.innerHTML = '<span class="btn-icon">🔍</span> Analizar boleta';
-    }
+/** Genera un folio único tipo #VOLT-2026-XXXX */
+function generarFolio() {
+  const rnd = Math.floor(1000 + Math.random() * 9000);
+  return `#VOLT-2026-${rnd}`;
+}
+
+/** Construye las filas de desglose desde el payload */
+function construirFilasDesglose(payload) {
+  const filas = [];
+  const addFila = (concepto, cantidad, estado = 'Activo') => filas.push({ concepto, cantidad, estado });
+
+  if (payload.consumo_kwh > 0) addFila('Consumo Declarado', `${payload.consumo_kwh} kWh/mes`, 'Base');
+  if (payload.refrigerador > 0) addFila('Refrigerador / Heladera', `${payload.refrigerador} unidad(es)`, 'Activo');
+  if (payload.freezer > 0) addFila('Freezer / Congelador', `${payload.freezer} unidad(es)`, 'Activo');
+  if (payload.tv > 0) {
+    const hDiarias = payload.tv_frecuencia ? (payload.tv_frecuencia / 7).toFixed(1).replace('.0', '') : 0;
+    addFila('Televisor', `${payload.tv} TV · ${hDiarias} h/día`, 'Activo');
+  }
+  if (payload.lavado_frecuencia > 0) addFila('Lavadora', `${payload.lavado_frecuencia} lavados/sem`, 'Activo');
+
+  EQUIPOS_TOGGLE.forEach(({ payloadKey, nombre, detalle }) => {
+    if (payload[payloadKey] === 1) addFila(nombre, detalle, 'Activo');
   });
 
-  function mostrarResultadoBoleta(data) {
-    resultado.hidden = false;
-    if (data.kwh_mes != null) {
-      kwhValor.textContent = `${Number(data.kwh_mes).toLocaleString("es-CL")} kWh`;
-      kwhRow.hidden = false;
-    } else {
-      kwhRow.hidden = true;
-    }
-    const simbolo = data.simbolo || data.moneda || "";
-    if (data.tarifa_kwh != null) {
-      tarifaValor.textContent = `${simbolo} ${Number(data.tarifa_kwh).toLocaleString("es-CL", { minimumFractionDigits: 2 })} / kWh`;
-      tarifaRow.hidden = false;
-    } else {
-      tarifaRow.hidden = true;
-    }
-    notaEl.textContent = data.nota ? `💬 ${data.nota}` : "";
-    const nivel = (data.confianza || "media").toLowerCase();
-    confianzaEl.textContent = `Confianza: ${nivel}`;
-    confianzaEl.className   = `boleta-resultado__confianza ${nivel}`;
-    btnAplicar.hidden = data.tarifa_kwh == null;
+  return filas;
+}
+
+/** Puebla el template #factura-print-template y llama window.print() */
+function poblarFactura() {
+  const payload  = window._lastPayload   || {};
+  const resultado = window._lastResultado || {};
+  const { res = {}, consumoVal = 0, costoVal = 0, ahorroVal = 0, categoria = '—', simbolo = '$', moneda = '', narrativa = '' } = resultado;
+
+  const el  = id => document.getElementById(id);
+  const fmt = val => (typeof val === 'number' ? val.toLocaleString() : val);
+
+  if (el('fptFolio')) el('fptFolio').textContent = generarFolio();
+  if (el('fptFecha')) {
+    const ahora = new Date();
+    el('fptFecha').textContent = 'Fecha: ' + ahora.toLocaleDateString('es-ES', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
   }
 
-  btnAplicar.addEventListener("click", () => {
-    if (!datosExtraidos) return;
-    if (datosExtraidos.tarifa_kwh != null) {
-      const campo = document.getElementById("tarifaClp");
-      if (campo) {
-        campo.value = datosExtraidos.tarifa_kwh;
-        campo.style.transition = "box-shadow 0.3s";
-        campo.style.boxShadow  = "0 0 0 3px rgba(34, 211, 168, 0.5)";
-        setTimeout(() => { campo.style.boxShadow = ""; }, 1500);
-      }
+  // ── Barra de cliente ──
+  if (el('fptPais'))         el('fptPais').textContent        = window._nombrePaisActivo || payload.pais || '—';
+  if (el('fptRegion'))       el('fptRegion').textContent      = payload.estado_provincia || '(sin especificar)';
+  if (el('fptInmuebleBadge')) el('fptInmuebleBadge').textContent = tipoInmuebleSeleccionado || '—';
+  const totalHab = (parseInt(payload.habitantes_mayores) || 0) + (parseInt(payload.habitantes_menores) || 0);
+  if (el('fptHabBadge'))     el('fptHabBadge').textContent    = `${totalHab} personas`;
+
+  // ── Sección 1: Inmueble ──
+  if (el('fptTipoVivienda'))   el('fptTipoVivienda').textContent   = tipoInmuebleSeleccionado || '—';
+  if (el('fptDormitorios'))    el('fptDormitorios').textContent    = payload.dormitorios ?? '—';
+  if (el('fptVentanas'))       el('fptVentanas').textContent       = payload.ventanas ?? '—';
+  if (el('fptAdultosMenores')) el('fptAdultosMenores').textContent =
+    `${payload.habitantes_mayores ?? 0} adultos / ${payload.habitantes_menores ?? 0} menores`;
+
+  // ── Sección 2: Desglose dinámico ──
+  const tbody = el('fptDesglose');
+  if (tbody) {
+    tbody.innerHTML = '';
+    const filas = construirFilasDesglose(payload);
+
+    if (filas.length === 0) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td colspan="3" style="text-align:center;font-style:italic;">Sin equipos declarados</td>';
+      tbody.appendChild(tr);
+    } else {
+      filas.forEach(({ concepto, cantidad, estado }) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${concepto}</td>
+          <td>${cantidad}</td>
+          <td><span class="fpt-estado-activo">${estado}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
-    btnAplicar.textContent = "✅ ¡Valores aplicados!";
-    btnAplicar.style.background = "linear-gradient(135deg, #059669, #10b981)";
-    setTimeout(() => {
-      btnAplicar.textContent = "✅ Aplicar estos valores al cálculo";
-      btnAplicar.style.background = "";
-    }, 2500);
+  }
+
+  // ── Sección 3: Totales ──
+  const sufijo = moneda ? ` ${moneda}` : '';
+  if (el('fptCategoria')) el('fptCategoria').textContent = categoria;
+  if (el('fptKwh'))       el('fptKwh').textContent       = `${consumoVal} kWh`;
+  if (el('fptCosto'))     el('fptCosto').textContent     = `${simbolo} ${fmt(costoVal)}${sufijo}`;
+  if (el('fptAhorro'))    el('fptAhorro').textContent    = `${simbolo} ${fmt(ahorroVal)}${sufijo}`;
+
+  // ── Recomendaciones ──
+  const recsList = el('fptRecs');
+  if (recsList) {
+    recsList.innerHTML = '';
+    const recs = res.recomendaciones?.length
+      ? res.recomendaciones
+      : ['Aplica buenas prácticas de consumo para reducir tu huella energética y ahorrar dinero.'];
+    recs.forEach(r => {
+      const li = document.createElement('li');
+      li.textContent = r;
+      recsList.appendChild(li);
+    });
+  }
+}
+
+// ── 8D. BOTÓN IMPRIMIR ───────────────────────────────────────
+document.getElementById('btnImprimir')?.addEventListener('click', () => {
+  poblarFactura();
+  setTimeout(() => window.print(), 150);
+});
+
+// ── 9. PERSISTENCIA (ENTRE PASOS) ────────────────────────────
+function saveState() {
+  const state = {
+    step: currentStep,
+    tipoInmueble: tipoInmuebleSeleccionado,
+    inputs: {}, checkboxes: {}
+  };
+  document.querySelectorAll('input[type="text"], input[type="number"], select').forEach(el => {
+    if (el.id) state.inputs[el.id] = el.value;
   });
+  document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    if (cb.id) state.checkboxes[cb.id] = cb.checked;
+  });
+  localStorage.setItem('volticvs_state', JSON.stringify(state));
+}
 
-  function mostrarError(msg) {
-    errorBox.textContent = `⚠️ ${msg}`;
-    errorBox.hidden = false;
-  }
-})();
+// Autoguardado y limpieza de errores en tiempo real
+document.querySelectorAll('input, select, textarea').forEach(el => {
+  const handler = e => { saveState(); clearError(e.target); };
+  el.addEventListener('change', handler);
+  el.addEventListener('input', handler);
+});
+document.querySelectorAll('.vivienda-card, .counter-btn').forEach(el => {
+  el.addEventListener('click', () => setTimeout(saveState, 50));
+});
+
+// ── 10. INICIALIZACIÓN ───────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  /* Siempre arrancar desde cero en cada carga de página */
+  resetearTodo();
+
+  /* Cargar países (establece el select al país default) */
+  await cargarPaises();
+
+  /* Mostrar el paso 1 con el avatar de bienvenida */
+  currentStep = 1;
+  showStep(1);
+});
