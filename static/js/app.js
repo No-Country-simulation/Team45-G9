@@ -253,75 +253,21 @@ function actualizarInfoPais(paises, codigo) {
   document.querySelectorAll('.unidad-agua').forEach(el => (el.textContent = window._unidadAgua));
 }
 
-// ════════════════════════════════════════════════════════════
+
 //  ── 7. RESET TOTAL (DOMContentLoaded + Nuevo Cálculo) ──
 // ════════════════════════════════════════════════════════════
+
 function resetearTodo() {
-  // 1. Limpiar localStorage
+  // 1. Limpiamos el localStorage para que no conserve datos viejos
   localStorage.removeItem('volticvs_state');
 
-  // 2. Resetear todos los inputs de texto a vacío
-  document.querySelectorAll('input[type="text"]').forEach(el => (el.value = ''));
-
-  // 3. Resetear número libre (consumo kWh)
-  const inputConsumo = document.getElementById('inputConsumo');
-  if (inputConsumo) inputConsumo.value = '';
-
-  // 4. Resetear select de país al default (se aplicará tras cargar países)
-  const selectPais = document.getElementById('pais') || document.getElementById('selectPais');
-  if (selectPais) {
-    selectPais.value = PAIS_DEFAULT;
-    if (_paisesCache) actualizarInfoPais(_paisesCache, PAIS_DEFAULT);
+  // 2. Detenemos cualquier audio/voz inmediatamente
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
   }
 
-  // 5. Toggle anual en ON (flag_anual = 1) por defecto
-  const flagAnual = document.getElementById('flagAnual');
-  if (flagAnual) {
-    flagAnual.checked = true;
-    const flagAnualLabel = document.getElementById('flagAnualLabel');
-    if (flagAnualLabel) flagAnualLabel.textContent = 'El consumo es anual';
-  }
-
-  // 6. TODOS los contadores a CERO
-  Object.entries(COUNTER_ZEROS).forEach(([id, val]) => {
-    const el = document.getElementById(id);
-    if (el) el.value = val;
-  });
-
-  // 7. Desmarcar todos los checkboxes excepto flagAnual (marcado en el paso 5)
-  document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-    if (cb.id !== 'flagAnual') {
-      cb.checked = false;
-      cb.closest('.equip-item')?.classList.remove('equip-item--on');
-    }
-  });
-
-  // 8. Restablecer tipo de inmueble a "Casa"
-  tipoInmuebleSeleccionado = 'Casa';
-  document.querySelectorAll('.vivienda-card').forEach(card => {
-    card.classList.toggle('vivienda-card--active', card.dataset.value === 'Casa');
-  });
-
-  // 9. Limpiar errores de validación
-  document.querySelectorAll('.input-error').forEach(clearError);
-  document.querySelectorAll('.error-msg').forEach(el => el.remove());
-
-  // 10. Limpiar estado interno de resultados
-  window._lastPayload  = null;
-  window._lastResultado = null;
-
-  // 11. Ocultar sección de resultados
-  if (resultadosSeccion) {
-    resultadosSeccion.hidden = true;
-    resultadosSeccion.style.display = '';
-  }
-
-  // 12. Volver al Paso 1
-  currentStep = 1;
-  showStep(1);             // Incluye updateProgressBar() + updateVoltiMessage(1)
-
-  // 13. Scroll al inicio
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // 3. Recargamos la página desde el inicio (Reset Total real)
+  window.location.reload();
 }
 
 // ── 8. EVENT LISTENERS ───────────────────────────────────────
@@ -614,15 +560,42 @@ document.querySelectorAll('.vivienda-card, .counter-btn').forEach(el => {
   el.addEventListener('click', () => setTimeout(saveState, 50));
 });
 
+
 // ── 10. INICIALIZACIÓN ───────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  /* Siempre arrancar desde cero en cada carga de página */
-  resetearTodo();
+  /* Limpiar almacenamiento viejo al cargar */
+  localStorage.removeItem('volticvs_state');
 
-  /* Cargar países (establece el select al país default) */
+  /* Cargar países */
   await cargarPaises();
 
   /* Mostrar el paso 1 con el avatar de bienvenida */
   currentStep = 1;
   showStep(1);
-});
+}); 
+
+
+// ── 11. Ureferes botton consumo anual ─────────────────────────────
+
+const flagAnual = document.getElementById('flagAnual');
+
+if (flagAnual) {
+  flagAnual.addEventListener('change', (e) => {
+    const esAnual = e.target.checked;
+
+    // 1. Cambia el texto junto al switch
+    const flagAnualLabel = document.getElementById('flagAnualLabel');
+    if (flagAnualLabel) {
+      flagAnualLabel.textContent = esAnual ? 'El consumo es anual' : 'El consumo es mensual';
+    }
+
+    // 2. Cambia el título de arriba sin afectar el icono del rayo
+    const textoTituloConsumo = document.getElementById('textoTituloConsumo');
+    if (textoTituloConsumo) {
+      textoTituloConsumo.textContent = esAnual 
+        ? 'Consumo eléctrico anual (kWh)' 
+        : 'Consumo eléctrico mensual (kWh)';
+    }
+  });
+}
+

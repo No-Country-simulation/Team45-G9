@@ -2,6 +2,9 @@ import base64
 import os
 import re
 
+from src import calculos
+from src import modelo
+from src import adaptador
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -598,69 +601,40 @@ def _recomendaciones_contextuales(categoria: str, d: dict) -> list[str]:
 
     return recs[:7]  # máximo 7 recomendaciones
 
-
 @app.route("/api/analisis-energetico", methods=["POST"])
 def analisis_energetico_mvp():
-    """Endpoint principal de cálculo energético — v2.0."""
+    """Endpoint principal de cálculo energético — v3.0 (motor estadístico Modelo.py)."""
     data = request.get_json(force=True) or {}
-
-    # ── 1. Sanitización completa de entradas ────────────────────────────────
-    d = _sanitizar(data)
-
-    # ── 2. Consumo en kWh (declarado o estimado por artefactos) ─────────────
-    resultado_consumo = _estimar_consumo(d)
-    consumo_kwh = resultado_consumo["consumo_kwh"]
-
-    # ── 3. Tarifa y moneda según país ───────────────────────────────────────
-    tarifa_kwh, simbolo_moneda = _get_tarifa(d["pais"])
-    costo_estimado = round(consumo_kwh * tarifa_kwh, 2)
-    ahorro_estimado = round(costo_estimado * 0.20, 2)
-
-    # ── 4. Clasificación energética ─────────────────────────────────────────
-    categoria = _clasificar(consumo_kwh)
-
-    # ── 5. Recomendaciones contextuales ─────────────────────────────────────
-    recomendaciones = _recomendaciones_contextuales(categoria, d)
-
-    # ── 6. Código ISO de moneda y Narrativa con LLM ─────────────────────────
-    moneda_iso = (
-        calculos.REFERENCIA.get("paises", {})
-        .get(d["pais"], {})
-        .get("moneda", "")
-    )
-
+ 
+    # 1. Traducir el payload del wizard al formato que espera Modelo.py
+    obs = adaptador.payload_a_obs(data)
+ 
+    # 2. Correr el modelo estadístico
+    result = modelo.predecir(obs)
+ 
+    # 3. Traducir la salida al formato que ya consume app.js (USD, mensual)
+    resumen = adaptador.resultado_a_frontend(result, data)
+ 
+    # 4. Narrativa con Groq, igual que antes, alimentada con los números nuevos
     resumen_para_llm = {
-        "total_kwh_mes": consumo_kwh,
-        "total_clp_mes": costo_estimado,
-        "ahorro_potencial_clp_mes": ahorro_estimado,
-        "simbolo_moneda": simbolo_moneda,
-        "moneda": moneda_iso,
+        "total_kwh_mes": resumen["total_kwh_mes"],
+        "total_clp_mes": resumen["total_clp_mes"],
+        "ahorro_potencial_clp_mes": resumen["ahorro_potencial_clp_mes"],
+        "simbolo_moneda": resumen["simbolo_moneda"],
+        "moneda": resumen["moneda"],
     }
-    narrativa = generar_narrativa(resumen_para_llm)
+    resumen["narrativa"] = generar_narrativa(resumen_para_llm)
+ 
+    return jsonify(resumen)
 
-    # ── 8. Respuesta estructurada ────────────────────────────────────────────
-    return jsonify({
-        # Campos primarios (nuevos nombres que el frontend ya consume)
-        "status":          "success",
-        "consumo_kwh":     round(consumo_kwh, 1),
-        "costo_estimado":  costo_estimado,
-        "ahorro_estimado": ahorro_estimado,
-        "simbolo_moneda":  simbolo_moneda,
-        "moneda":          moneda_iso,
-        "categoria":       categoria,
-        "fuente_consumo":  resultado_consumo["fuente"],
-        "desglose":        resultado_consumo["desglose"],
-        "recomendaciones": recomendaciones,
-        "narrativa":       narrativa,
-        # Aliases de compatibilidad (versiones previas del frontend los esperan)
-        "costo_estimado_mensual":   costo_estimado,
-        "total_kwh_mes":            round(consumo_kwh, 1),
-        "total_clp_mes":            costo_estimado,
-        "ahorro_potencial_clp_mes": ahorro_estimado,
-        "probabilidad":             0.90 if categoria == "Eficiente" else 0.75 if categoria == "Moderado" else 0.82,
-    })
+      
+
+
+
 
 if __name__ == "__main__":
-    puerto = int(os.getenv("PORT", 5000))
-    modo_debug = os.getenv("FLASK_DEBUG", "1") == "1"
-    app.run(host="0.0.0.0", port=puerto, debug=modo_debug)
+     puerto = int(os.getenv("PORT", 5000))
+     modo_debug = os.getenv("FLASK_DEBUG", "1") == "1"
+     app.run(host="0.0.0.0", port=puerto, debug=modo_debug) 
+
+

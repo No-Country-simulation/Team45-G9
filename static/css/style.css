@@ -1274,3 +1274,44 @@ select, input { font-family: var(--font); }
   font-size: 0.8rem;
   margin-top: 4px;
 }
+
+
+
+
+/*
+   ── configuracion para la impresion del reporte---
+   */
+
+@media print {
+  /* 1. Ocultar masivamente botones, barra de Volti y globos de texto */
+  button,
+  .btn,
+  header,
+  footer,
+  nav,
+  aside,
+  [class*="volti"],
+  [id*="volti"],
+  [class*="bubble"],
+  [id*="bubble"],
+  [class*="chat"],
+  [id*="chat"] {
+    display: none !important;
+  }
+
+  /* 2. Quitar posiciones para que no se tape el texto */
+  * {
+    position: static !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* 3. Limpiar fondos y ajustar al ancho total de la hoja */
+  body, main, section, div {
+    background: #ffffff !important;
+    color: #000000 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+}
