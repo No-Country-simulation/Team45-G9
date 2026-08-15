@@ -1,4 +1,4 @@
-# MODELO
+# MODELO  (Modelo.py)
 
 El modelo actual fue entrenado para Estados Unidos y para Chile. Aunque puede ser utilizado para todos los paises de América. Para Canada utiliza por defecto el modelo de Estados Unidos , para el resto de América utiliza el modelo de Chile.
 
