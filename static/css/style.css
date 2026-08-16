@@ -1027,6 +1027,10 @@ select, input { font-family: var(--font); }
     display: none !important;
   }
 
+   #denji-sprite, #denji-hud, #denji-card, #denji-status {
+    display: none !important;
+  }
+
   /* Expandir contenedor principal a ancho completo */
   #resultados-panel, .resultados-container, #factura-print-template {
     display: block !important;
@@ -1096,6 +1100,17 @@ select, input { font-family: var(--font); }
   .fpt-section {
     margin-bottom: 6mm;
     page-break-inside: avoid;
+  }
+
+  .fpt-narrativa {
+    display: block !important;
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: #F4F6F8;
+    border-left: 3px solid #009E73;
+    font-size: 10pt;
+    line-height: 1.5;
+    text-align: justify;
   }
 
   .fpt-section-title {
@@ -1274,44 +1289,36 @@ select, input { font-family: var(--font); }
   font-size: 0.8rem;
   margin-top: 4px;
 }
-
-
-
-
-/*
-   ── configuracion para la impresion del reporte---
-   */
-
-@media print {
-  /* 1. Ocultar masivamente botones, barra de Volti y globos de texto */
-  button,
-  .btn,
-  header,
-  footer,
-  nav,
-  aside,
-  [class*="volti"],
-  [id*="volti"],
-  [class*="bubble"],
-  [id*="bubble"],
-  [class*="chat"],
-  [id*="chat"] {
-    display: none !important;
-  }
-
-  /* 2. Quitar posiciones para que no se tape el texto */
-  * {
-    position: static !important;
-    box-shadow: none !important;
-    text-shadow: none !important;
-  }
-
-  /* 3. Limpiar fondos y ajustar al ancho total de la hoja */
-  body, main, section, div {
-    background: #ffffff !important;
-    color: #000000 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-  }
+/* ── 21. ESTADO DE LA SUBIDA DE BOLETA ──────────────────────── */
+.boleta-estado {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  border-left: 4px solid var(--gris);
+  background: var(--p-gris);
+  color: var(--carbon);
 }
+.boleta-estado--cargando { border-left-color: var(--azul);   background: var(--p-azul); }
+.boleta-estado--ok       { border-left-color: var(--verde);  background: var(--p-verde); }
+.boleta-estado--error    { border-left-color: var(--error);  background: #FDECEC; }
+
+/* ── 22. AVISO GLOBAL (fallos de red / API) ─────────────────── */
+/* Los fallos que no pertenecen a ningún campo del formulario necesitan un
+   sitio propio: antes solo cambiaban el gesto del asistente. */
+.aviso-global {
+  margin: 12px 16px 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border-left: 4px solid var(--error);
+  background: #FDECEC;
+  color: #8B1D1D;
+  font-size: 0.85rem;
+}
+.aviso-global[hidden] { display: none; }
+
+/* ── 23. NARRATIVA EN LA FACTURA IMPRESA ────────────────────── */
+/* Solo se ve al imprimir: en pantalla ya están las métricas destacadas. */
+.fpt-narrativa { display: none; }
+.fpt-narrativa[hidden] { display: none !important; }
