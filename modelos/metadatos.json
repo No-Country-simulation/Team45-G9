@@ -1,0 +1,87 @@
+{
+  "version_sklearn": "1.8.0",
+  "fecha_entrenamiento": "2026-08-17T11:18:48.956052+00:00",
+  "semilla": 42,
+  "n_hogares_entrenamiento": 2400,
+  "n_hogares_prueba": 600,
+  "features_numericas": [
+    "dormitorios",
+    "ventanas",
+    "habitantes_mayores",
+    "habitantes_menores",
+    "aire_acondicionado",
+    "calefaccion_electrica",
+    "agua_caliente_electrica",
+    "secarropas_electrico",
+    "horno_electrico",
+    "refrigerador",
+    "freezer",
+    "tv",
+    "tv_frecuencia",
+    "lavado_frecuencia",
+    "cantidad_equipos",
+    "uso_horario_pico",
+    "horas_alto_consumo"
+  ],
+  "features_categoricas": [
+    "tipo_inmueble"
+  ],
+  "orden_features_entrada": [
+    "dormitorios",
+    "ventanas",
+    "habitantes_mayores",
+    "habitantes_menores",
+    "aire_acondicionado",
+    "calefaccion_electrica",
+    "agua_caliente_electrica",
+    "secarropas_electrico",
+    "horno_electrico",
+    "refrigerador",
+    "freezer",
+    "tv",
+    "tv_frecuencia",
+    "lavado_frecuencia",
+    "cantidad_equipos",
+    "uso_horario_pico",
+    "horas_alto_consumo",
+    "tipo_inmueble"
+  ],
+  "clases": [
+    "Eficiente",
+    "Moderado",
+    "Ineficiente"
+  ],
+  "umbrales_etiquetas_kwh": {
+    "tercil_bajo": 278.1333333333333,
+    "tercil_alto": 405.9
+  },
+  "metricas_modelo_final": {
+    "exactitud": 0.9733333333333334,
+    "precision_por_clase": {
+      "Eficiente": 0.9800995024875622,
+      "Moderado": 0.9554455445544554,
+      "Ineficiente": 0.9847715736040609
+    },
+    "recall_por_clase": {
+      "Eficiente": 0.985,
+      "Moderado": 0.965,
+      "Ineficiente": 0.97
+    },
+    "f1_por_clase": {
+      "Eficiente": 0.9825436408977556,
+      "Moderado": 0.9601990049751243,
+      "Ineficiente": 0.9773299748110831
+    }
+  },
+  "modelo_final_elegido": "Regresión Logística",
+  "metricas_regresion_logistica": {
+    "exactitud": 0.9733333333333334
+  },
+  "metricas_random_forest_ajustado": {
+    "exactitud": 0.9133333333333333,
+    "mejores_hiperparametros": {
+      "clf__max_depth": null,
+      "clf__n_estimators": 200
+    }
+  }
+}

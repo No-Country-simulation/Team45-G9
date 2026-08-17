@@ -1,0 +1,11 @@
+langchain-groq>=0.2.0
+langchain-core>=0.3.0
+python-dotenv>=1.0.0
+flask>=3.0.0
+flask-limiter>=3.5.0
+pdfplumber>=0.11.0
+gunicorn>=22.0.0
+# Fase E: descarga el modelo entrenado desde Object Storage al arrancar, si
+# no está ya en local. Si el paquete faltara por algún motivo, oci_storage.py
+# lo detecta y degrada solo — no tumba el arranque de la app.
+oci>=2.126.0
