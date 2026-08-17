@@ -1,0 +1,80 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        # Interfaz visual de la API en /apidocs. Apagada por defecto: son ~9 MB
+        # de Swagger UI. Para activarla:
+        #     INSTALAR_DOCS=1 docker compose build && docker compose up -d
+        # y ENABLE_API_DOCS=1 en el .env.
+        INSTALAR_DOCS: "${INSTALAR_DOCS:-0}"
+    # Puerto del host separado del puerto interno: en macOS el 5000 lo ocupa el
+    # receptor de AirPlay (ControlCenter), asi que hay que poder remapear sin
+    # tocar el puerto en el que escucha la aplicacion.
+    #   HOST_PORT=5001 docker compose up
+    ports:
+      - "${HOST_PORT:-5000}:${PORT:-5000}"
+
+    # La configuracion se inyecta en ejecucion; nunca se hornea en la imagen.
+    # El .env no entra al contexto de build (ver .dockerignore).
+    env_file:
+      - .env
+    environment:
+      PORT: "${PORT:-5000}"
+      # Nunca el depurador de Werkzeug en un contenedor: permite ejecutar
+      # codigo de forma remota.
+      FLASK_DEBUG: "0"
+      # Fase D: historial de análisis en SQLite. Ruta dentro del volumen
+      # nombrado (ver volumes más abajo), no en el tmpfs de uploads/ — ese se
+      # borra en cada restart y el historial no debe perderse con él.
+      ANALISIS_DB_PATH: /app/instance/analisis.db
+
+    # Las boletas se borran en cuanto se analizan; no necesitan disco ni deben
+    # sobrevivir al contenedor. tmpfs las mantiene en memoria y fuera de la capa
+    # de escritura.
+    tmpfs:
+      - /app/uploads:mode=1777,size=32m
+
+    # El codigo montado encima para desarrollo: se edita y gunicorn recarga sin
+    # reconstruir la imagen. Solo lectura, para que el contenedor no pueda
+    # modificar el arbol de trabajo.
+    volumes:
+      - ./app.py:/app/app.py:ro
+      - ./src:/app/src:ro
+      - ./data:/app/data:ro
+      - ./static:/app/static:ro
+      - ./templates:/app/templates:ro
+      - analisis_db:/app/instance
+    command: >
+      sh -c "exec gunicorn app:app
+      --bind 0.0.0.0:${PORT:-5000}
+      --workers 1
+      --threads 8
+      --worker-class gthread
+      --timeout 60
+      --reload
+      --access-logfile -
+      --error-logfile -"
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','5000')+'/health', timeout=4).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    restart: unless-stopped
+
+# Para escalar a varios workers hace falta antes un almacenamiento compartido:
+# el limite de tasa y la cache de geocodificacion viven hoy en la memoria del
+# proceso. Descomentar y poner RATELIMIT_STORAGE_URI=redis://redis:6379 en .env
+#
+#  redis:
+#    image: redis:7-alpine
+#    restart: unless-stopped
+
+volumes:
+  # Historial de análisis (SQLite, Fase D). Nombrado, no bind mount: sobrevive
+  # a `docker compose down` (solo se pierde con `docker compose down -v`,
+  # explícito). `docker volume ls` lo muestra como team45-g9-final_analisis_db.
+  analisis_db:
