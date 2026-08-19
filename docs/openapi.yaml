@@ -717,6 +717,14 @@ components:
           minimum: 0
           maximum: 1
         fuente_clasificacion: { type: string, enum: [modelo, umbrales] }
+        advertencias_modelo:
+          type: array
+          items: { type: string }
+          description: >
+            Datos fuera de rango o del tipo equivocado que el modelo tuvo que corregir
+            (reemplazados por la mediana del dataset de entrenamiento) antes de predecir.
+            Lista vacía si todo llegó dentro de lo esperado, o si fuente_clasificacion es
+            "umbrales" (ahí no aplica esta validación).
         fuente_consumo: { type: string, enum: [declarado, estimado, sin_datos] }
         fuente_ahorro: { type: string, enum: [desglose_artefactos, sin_artefactos_declarados] }
         desglose:

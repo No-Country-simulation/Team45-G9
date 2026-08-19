@@ -408,10 +408,36 @@
                 <span class="toggle-switch__slider"></span>
               </label>
             </div>
- <div class="form-group" style="margin-top: 1rem;">
+
+            <div class="form-group">
+              <label class="form-label" for="inputLucesExterior">
+                <span class="label-badge"><i data-lucide="lightbulb"></i></span>
+                Luces en el exterior de la vivienda
+              </label>
+              <div class="counter-input">
+                <button type="button" class="counter-btn counter-btn--minus" data-target="inputLucesExterior">−</button>
+                <input type="number" class="form-input counter-value" id="inputLucesExterior" min="0" value="0">
+                <button type="button" class="counter-btn counter-btn--plus" data-target="inputLucesExterior">+</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="inputLucesInterior">
+                <span class="label-badge"><i data-lucide="lightbulb"></i></span>
+                Luces interiores encendidas al menos 4 horas al día
+              </label>
+              <span class="form-hint">Solo las que quedan prendidas por 4 horas o más — no todas las de la casa.</span>
+              <div class="counter-input">
+                <button type="button" class="counter-btn counter-btn--minus" data-target="inputLucesInterior">−</button>
+                <input type="number" class="form-input counter-value" id="inputLucesInterior" min="0" value="0">
+                <button type="button" class="counter-btn counter-btn--plus" data-target="inputLucesInterior">+</button>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
               <label class="toggle-row">
                 <input type="checkbox" id="skipStep3">
-                <span>No quiero responder esta sección</span>
+                <span>Ninguno de estos equipos está en mi vivienda</span>
               </label>
             </div>
 

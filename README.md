@@ -461,14 +461,20 @@ git diff --cached                    # los que ya están preparados
 | Capa | Stack |
 |---|---|
 | **Backend** | Python 3.12, Flask 3, gunicorn, flask-limiter |
-| **Modelo** | LangChain + Groq (Llama 3.3 70B; visión con Llama 4 Scout) |
+| **Modelo de eficiencia** | scikit-learn (Regresión Logística, 97,3% exactitud) + joblib + pandas — entrenado en `notebooks/energiai.ipynb`, servido por `src/modelo.py` |
+| **Narrativa y lectura de boletas** | LangChain + Groq (Llama 3.3 70B; visión con Llama 4 Scout) — nunca calcula, solo redacta |
+| **Asistente guiado** | Denji (`static/js/denji.js`) — voz, mic, y sincronización bidireccional con el formulario |
+| **Geocodificación** | Nominatim/OpenStreetMap, vía `src/geo.py` (identificado, con caché y límite de tasa) |
+| **Persistencia** | SQLite (`src/almacen.py`) — historial de análisis, consultable por id |
+| **Almacenamiento del modelo** | OCI Object Storage (`src/oci_storage.py`) — Instance Principal, con degradación a modelo local |
 | **Frontend** | HTML5, CSS3, JavaScript ES6+ — sin framework ni CDN |
-| **Datos** | JSON de referencia, cálculo determinista |
-| **Infra** | Docker multi-stage, GitHub Actions |
+| **Datos** | JSON de referencia + dataset sintético (`data/consumo_hogares.csv`), cálculo determinista |
+| **Infra** | Docker multi-stage, GitHub Actions (lint + tests + build de imagen) |
 
-La interfaz **no hace ninguna petición a servidores externos**: los iconos y la tipografía se sirven
-desde el propio proyecto. Funciona sin conexión a internet salvo por las funciones que requieren
-modelo.
+La interfaz **no hace ninguna petición a servidores externos** salvo las que requieren un servicio
+específico (geocodificación, el LLM, o descargar el modelo desde OCI la primera vez) — los iconos y
+la tipografía se sirven desde el propio proyecto, y cada una de esas integraciones se degrada
+explícitamente si no está disponible, sin tumbar la app.
 
 ---
 

@@ -11,13 +11,11 @@ flasgger>=0.9.7
 pyyaml>=6.0
 
 # Fase A — regenerar notebooks/energiai.ipynb y scripts/generar_dataset.py.
-# No hacen falta en producción (el modelo ya viene serializado en modelos/),
-# solo para quien vaya a re-entrenar o auditar el notebook.
-scikit-learn>=1.4.0
-pandas>=2.2.0
+# joblib, pandas y scikit-learn ya vienen de requirements.txt (son de
+# producción también, no solo del notebook — ver el porqué ahí). Acá solo lo
+# que es EXCLUSIVO de re-entrenar o auditar el notebook.
 numpy>=1.26.0
 matplotlib>=3.8.0
-joblib>=1.3.0
 jupyter>=1.0.0
 nbformat>=5.10.0
 nbclient>=0.10.0

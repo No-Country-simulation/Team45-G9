@@ -300,6 +300,24 @@ def estimar_desde_perfil(respuestas: dict, tarifa: float) -> dict:
             )
         )
 
+    # Iluminación: se asume incandescente por defecto (el wizard no pregunta
+    # el tipo de ampolleta) — es el supuesto conservador, ya que sobreestima
+    # el consumo real si el hogar ya tiene LED, y eso es preferible a
+    # subestimarlo. Horas: 6h/noche para exterior (encendido de anochecer a
+    # medianoche aprox.), 4h/día para interior porque es exactamente lo que
+    # pregunta el formulario ("encendidas al menos 4 horas al día").
+    luces_ext = int(leer("luces_exterior"))
+    if luces_ext > 0:
+        item_luces_ext = consumo_iluminacion("incandescente", luces_ext, horas_uso_diario=6, tarifa=tarifa)
+        item_luces_ext["nombre"] = "Iluminación exterior"
+        items.append(item_luces_ext)
+
+    luces_int = int(leer("luces_interior"))
+    if luces_int > 0:
+        item_luces_int = consumo_iluminacion("incandescente", luces_int, horas_uso_diario=4, tarifa=tarifa)
+        item_luces_int["nombre"] = "Iluminación interior"
+        items.append(item_luces_int)
+
     desglose = {item["nombre"]: item["kwh_mes_actual"] for item in items}
     total_kwh = sum(item["kwh_mes_actual"] for item in items)
     ahorro_dinero = sum(item.get("ahorro_clp_mes", 0) for item in items)

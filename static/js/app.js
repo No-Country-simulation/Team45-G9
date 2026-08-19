@@ -187,7 +187,7 @@ function validarPaso(pasoActual) {
       const algunoActivo = Array.from(document.querySelectorAll('#step3 .equip-toggle'))
         .some(el => el.checked);
       if (!algunoActivo) {
-        mostrarErrorGlobal('Selecciona al menos un artefacto, o marca "No quiero responder esta sección".');
+        mostrarErrorGlobal('Selecciona al menos un artefacto, o marca "Ninguno de estos equipos está en mi vivienda".');
         valido = false;
       }
     }
@@ -580,8 +580,8 @@ document.getElementById('btnSubmit')?.addEventListener('click', async (evento) =
     lavado_frecuencia:     parseInt(v('lavadoFrecuencia')?.value) || 0,
     refrigerador:          parseInt(v('refrigerador')?.value) || 0,
     freezer:               parseInt(v('freezer')?.value) || 0,
-    luces_exterior:        0,
-    luces_interior:        0,
+    luces_exterior:        parseInt(v('inputLucesExterior')?.value) || 0,
+    luces_interior:        parseInt(v('inputLucesInterior')?.value) || 0,
     tv:                    parseInt(v('tv')?.value) || 0,
     tv_frecuencia:         horasDiariasTv * 7,
     tipo_inmueble:         tipoInmuebleSeleccionado,

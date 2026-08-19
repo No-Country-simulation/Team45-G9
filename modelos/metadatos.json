@@ -1,6 +1,6 @@
 {
   "version_sklearn": "1.8.0",
-  "fecha_entrenamiento": "2026-08-17T11:18:48.956052+00:00",
+  "fecha_entrenamiento": "2026-08-19T12:49:06.023722+00:00",
   "semilla": 42,
   "n_hogares_entrenamiento": 2400,
   "n_hogares_prueba": 600,
@@ -24,7 +24,8 @@
     "horas_alto_consumo"
   ],
   "features_categoricas": [
-    "tipo_inmueble"
+    "tipo_inmueble",
+    "pais"
   ],
   "orden_features_entrada": [
     "dormitorios",
@@ -44,7 +45,8 @@
     "cantidad_equipos",
     "uso_horario_pico",
     "horas_alto_consumo",
-    "tipo_inmueble"
+    "tipo_inmueble",
+    "pais"
   ],
   "clases": [
     "Eficiente",
@@ -56,32 +58,32 @@
     "tercil_alto": 405.9
   },
   "metricas_modelo_final": {
-    "exactitud": 0.9733333333333334,
+    "exactitud": 0.9783333333333334,
     "precision_por_clase": {
-      "Eficiente": 0.9800995024875622,
-      "Moderado": 0.9554455445544554,
-      "Ineficiente": 0.9847715736040609
+      "Eficiente": 0.9899497487437185,
+      "Moderado": 0.9605911330049262,
+      "Ineficiente": 0.9848484848484849
     },
     "recall_por_clase": {
       "Eficiente": 0.985,
-      "Moderado": 0.965,
-      "Ineficiente": 0.97
+      "Moderado": 0.975,
+      "Ineficiente": 0.975
     },
     "f1_por_clase": {
-      "Eficiente": 0.9825436408977556,
-      "Moderado": 0.9601990049751243,
-      "Ineficiente": 0.9773299748110831
+      "Eficiente": 0.9874686716791979,
+      "Moderado": 0.967741935483871,
+      "Ineficiente": 0.9798994974874372
     }
   },
   "modelo_final_elegido": "Regresión Logística",
   "metricas_regresion_logistica": {
-    "exactitud": 0.9733333333333334
+    "exactitud": 0.9783333333333334
   },
   "metricas_random_forest_ajustado": {
-    "exactitud": 0.9133333333333333,
+    "exactitud": 0.9066666666666666,
     "mejores_hiperparametros": {
       "clf__max_depth": null,
-      "clf__n_estimators": 200
+      "clf__n_estimators": 400
     }
   }
 }

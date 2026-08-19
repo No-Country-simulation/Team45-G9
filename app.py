@@ -106,6 +106,14 @@ forma cálida, clara y con un toque de humor.
 REGLA ABSOLUTA: no inventes ni cambies ningún número. Usa EXACTAMENTE los valores en
 kWh y la moneda/símbolo que te entrego (DOP, CLP, USD, etc.).
 Destaca cuál es la mayor oportunidad de ahorro y da recomendaciones concretas.
+
+CÓMO INTERPRETAR EL PERFIL Y LA CATEGORÍA (para que lo expliques bien, no lo repitas literal):
+El consumo estimado es el promedio esperado para hogares con las mismas características
+que el suyo (mismo tamaño, mismos equipos, mismos habitantes). La categoría de eficiencia
+(Eficiente / Moderado / Ineficiente) no mide el consumo en sí, sino qué tan por debajo o
+por encima de ese promedio esperado está el hogar: un hogar "Eficiente" es aquel que
+consume MENOS de lo que el modelo esperaría para un hogar con sus mismas características,
+no necesariamente un hogar con poco consumo en términos absolutos.
 """
 
 
@@ -936,10 +944,18 @@ def _recomendaciones_contextuales(categoria: str, d: dict, perfil: dict) -> list
     if d["horno_electrico"]:
         recs.append("Precalienta el horno solo cuando sea necesario y aprovecha el calor residual apagándolo antes de terminar.")
 
-    recs.append(
-        "Usa bombillas LED en toda la vivienda — pueden ahorrar hasta un 90% frente a las incandescentes — "
-        "y aprovecha la luz natural durante el día."
-    )
+    pct_luces = porcentaje("Iluminación exterior") + porcentaje("Iluminación interior")
+    total_luces = d.get("luces_exterior", 0) + d.get("luces_interior", 0)
+    if total_luces > 0 and pct_luces > 0:
+        recs.append(
+            f"Tienes {total_luces} luces declaradas que representan aproximadamente el {pct_luces:.0f}% "
+            "de tu consumo. Cambiar a LED puede ahorrar hasta un 90% de ese consumo frente a incandescentes."
+        )
+    else:
+        recs.append(
+            "Usa bombillas LED en toda la vivienda — pueden ahorrar hasta un 90% frente a las incandescentes — "
+            "y aprovecha la luz natural durante el día."
+        )
 
     return recs[:8]
 
@@ -993,6 +1009,7 @@ def _calcular_analisis_energetico():
     categoria = resultado_clasificacion["categoria"]
     probabilidad = resultado_clasificacion["probabilidad"]
     fuente_clasificacion = resultado_clasificacion["fuente_clasificacion"]
+    advertencias_modelo = resultado_clasificacion["advertencias"]
     recomendaciones = _recomendaciones_contextuales(categoria, d, perfil)
 
     # ── 7. Narrativa con LLM ────────────────────────────────────────────────
@@ -1017,6 +1034,7 @@ def _calcular_analisis_energetico():
         "categoria":       categoria,
         "probabilidad":    probabilidad,
         "fuente_clasificacion": fuente_clasificacion,
+        "advertencias_modelo": advertencias_modelo,
         # C.1: los 3 campos del contrato del PDF, tal como se usaron (explícitos
         # si el caller los mandó, derivados del perfil de artefactos si no).
         "uso_horario_pico":   d["uso_horario_pico"],
