@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from math import floor
 
+#### Utilizado para probar el modelo:
 '''
-
 obs = {
     "pais" : 24,
     "estado" : 10,
@@ -25,21 +25,28 @@ obs = {
     "secarropas_electrico" : 0,
     "aire_acondicionado" : 1,
     "tv_cantidad" : 1,
-    "tv_frecuencia": 10,
+    "tv_frecuencia": 14,
     "freezer" : 0,
     "refrigerador": 1,
     "luces_exterior":0,
-    "luces_interior_4_horas": 3,
-    "kwh": 2000,
+    "luces_interior_4_horas": 0,
+    "kwh": 100,
     "periodo_anual": 1
 
 
 
 }
 '''
+### Lee el JSON
 with open("INPUT.json", "r", encoding="utf-8") as file:
     obs = json.load(file)
+
+
+
 # PRECIOS
+#se imputa
+#0.35 para el caribe
+#0.255 para sudamerica
 PRECIO_KWH_PAIS = {
     "CANADA": 0.123,
     "USA": 0.188,
@@ -51,26 +58,26 @@ PRECIO_KWH_PAIS = {
     "HONDURAS": 0.231,
     "NICARAGUA": 0.176,
     "PANAMA": 0.176,
-    "ANTIGUA AND BARBUDA": 0.75,#
+    "ANTIGUA AND BARBUDA": 0.35,#
     "BAHAMAS": 0.348,
     "BARBADOS": 0.314,
     "CUBA": 0.014,
-    "DOMINICA":  0.75,#
+    "DOMINICA":  0.35,#
     "DOMINICAN REPUBLIC": 0.115,
-    "GRENADA":  0.75,#
-    "HAITI":  0.75,#
+    "GRENADA":  0.35,#
+    "HAITI":  0.35,#
     "JAMAICA": 0.290,
-    "SAINT KITTS AND NEVIS":  0.75,#
-    "SAINT LUCIA":  0.75,#
-    "SAINT VINCENT AND THE GRENADINES":  0.75,#
+    "SAINT KITTS AND NEVIS":  0.35,#
+    "SAINT LUCIA":  0.35,#
+    "SAINT VINCENT AND THE GRENADINES":  0.35,#
     "TRINIDAD AND TOBAGO": 0.057,
     "ARGENTINA": 0.087,
-    "BOLIVIA": 0.75,
+    "BOLIVIA": 0.255,#
     "BRAZIL": 0.164,
     "CHILE": 0.228,
     "COLOMBIA": 0.207,
     "ECUADOR": 0.097,
-    "GUYANA": 0.75,#
+    "GUYANA": 0.35,#
     "PARAGUAY": 0.055,
     "PERU": 0.186,
     "SURINAME": 0.050,
@@ -1129,16 +1136,28 @@ INDICE_DE_EFICIENCIA =  100 * (1 - 2 * cdf)
 # 3. PERFIL_DE_EFICIENCIA  (categorical)
 # -------------------------------------------------
 # Example thresholds on the index (adjust as you like)
-if INDICE_DE_EFICIENCIA >= 60:
-    PERFIL_DE_EFICIENCIA = "Muy eficiente"
+if INDICE_DE_EFICIENCIA >= 80:
+    PERFIL_DE_EFICIENCIA = "A++"
+elif INDICE_DE_EFICIENCIA >= 60:
+    PERFIL_DE_EFICIENCIA = "A+"
+elif INDICE_DE_EFICIENCIA >= 40:
+    PERFIL_DE_EFICIENCIA = "A"
 elif INDICE_DE_EFICIENCIA >= 20:
-    PERFIL_DE_EFICIENCIA = "Eficiente"
+    PERFIL_DE_EFICIENCIA = "B"
+elif INDICE_DE_EFICIENCIA >= 10:
+    PERFIL_DE_EFICIENCIA = "C+"
+elif INDICE_DE_EFICIENCIA >= -10:
+    PERFIL_DE_EFICIENCIA = "C"
 elif INDICE_DE_EFICIENCIA >= -20:
-    PERFIL_DE_EFICIENCIA = "Moderado"
+    PERFIL_DE_EFICIENCIA = "C-"
+elif INDICE_DE_EFICIENCIA >= -40:
+    PERFIL_DE_EFICIENCIA = "D"
 elif INDICE_DE_EFICIENCIA >= -60:
-    PERFIL_DE_EFICIENCIA = "Ineficiente"
+    PERFIL_DE_EFICIENCIA = "E"
+elif INDICE_DE_EFICIENCIA >= -80:
+    PERFIL_DE_EFICIENCIA = "F"
 else:
-    PERFIL_DE_EFICIENCIA = "Muy ineficiente"
+    PERFIL_DE_EFICIENCIA = "G"
 
 
 
@@ -1150,6 +1169,12 @@ if cantidad_imputaciones_basico > 0:
   advertencias.append(f"Se realizaron {cantidad_imputaciones_basico} imputación/es en variables clave del modelo, lo que puede afectar la precisión de las predicciones.")
 if cantidad_imputaciones_avanzado > 0:
   advertencias.append(f"Se realizaron {cantidad_imputaciones_avanzado} imputación/es en variables del cuestionario avanzado, lo que puede afectar la precisión de las categorías de consumo.")
+if obs['pais'] in ["ANTIGUA AND BARBUDA", "DOMINICA","GRENADA","HAITI","SAINT KITTS AND NEVIS","SAINT LUCIA","SAINT VINCENT AND THE GRENADINES","GUYANA"]:
+  advertencias.append(f"No se cuenta con información sobre el costo de la elecricidad en este país, se la imputa por el mayor precio del caribe: US$0.35 por kwh.")
+if obs['pais'] in ["BOLIVIA"]:
+  advertencias.append(f"No se cuenta con información sobre el costo de la elecricidad en este país, se la imputa por el mayor precio de sudamerica: US$0.255 por kwh.")
+
+
 
 recomendaciones = []
 
@@ -1159,10 +1184,10 @@ recomendaciones = []
 
 if PERFIL_DE_CONSUMO in ["Muy alto", "Alto"]:
 
-    if PERFIL_DE_EFICIENCIA in ["Muy ineficiente", "Ineficiente"]:
+    if PERFIL_DE_EFICIENCIA in ["D", "E", "F", "G"]:
         recomendaciones.append("Las características de tu hogar indican que su consumo esperado es superior al de la vivienda promedio de tu país; además, actualmente consumes más electricidad que hogares con características similares, por lo que tienes un alto potencial de ahorro mediante cambios de hábitos y equipos más eficientes.")
 
-    elif PERFIL_DE_EFICIENCIA in ["Muy eficiente", "Eficiente"]:
+    elif PERFIL_DE_EFICIENCIA in ["A++","A+", "A", "B"]:
         recomendaciones.append("Las características de tu hogar indican que su consumo esperado es superior al de la vivienda promedio de tu país; sin embargo, consumes menos electricidad que hogares con características similares, lo que refleja un muy buen nivel de eficiencia energética.")
 
     else:
@@ -1171,10 +1196,10 @@ if PERFIL_DE_CONSUMO in ["Muy alto", "Alto"]:
 
 elif PERFIL_DE_CONSUMO in ["Muy bajo", "Bajo"]:
 
-    if PERFIL_DE_EFICIENCIA in ["Muy ineficiente", "Ineficiente"]:
+    if PERFIL_DE_EFICIENCIA in ["D", "E", "F", "G"]:
         recomendaciones.append("Las características de tu hogar indican que su consumo esperado es inferior al de la vivienda promedio de tu país; aun así, consumes más electricidad que hogares con características similares, por lo que existen oportunidades claras para mejorar tu eficiencia energética.")
 
-    elif PERFIL_DE_EFICIENCIA in ["Muy eficiente", "Eficiente"]:
+    elif PERFIL_DE_EFICIENCIA in ["A++","A+", "A", "B"]:
         recomendaciones.append("Las características de tu hogar indican que su consumo esperado es inferior al de la vivienda promedio de tu país y, además, consumes menos electricidad que hogares con características similares, lo que demuestra un excelente desempeño energético.")
 
     else:
@@ -1183,10 +1208,10 @@ elif PERFIL_DE_CONSUMO in ["Muy bajo", "Bajo"]:
 
 else:  # Consumo medio
 
-    if PERFIL_DE_EFICIENCIA in ["Muy ineficiente", "Ineficiente"]:
+    if PERFIL_DE_EFICIENCIA in ["D", "E", "F", "G"]:
         recomendaciones.append("Las características de tu hogar indican un consumo esperado similar al de la vivienda promedio de tu país; sin embargo, consumes más electricidad que hogares con características similares, por lo que existe un importante margen para reducir tu consumo mediante medidas de eficiencia.")
 
-    elif PERFIL_DE_EFICIENCIA in ["Muy eficiente", "Eficiente"]:
+    elif PERFIL_DE_EFICIENCIA in ["A++","A+", "A", "B"]:
         recomendaciones.append("Las características de tu hogar indican un consumo esperado similar al de la vivienda promedio de tu país y consumes menos electricidad que hogares con características similares, lo que indica un buen nivel de eficiencia energética.")
 
     else:
@@ -1197,6 +1222,7 @@ else:  # Consumo medio
 # RECOMENDACIONES ESPECÍFICAS
 # ============================================================
 precio_kwh = PRECIO_KWH_PAIS[PAISES[obs['pais']]]
+AHORRO = 0
 # ------------------------------------------------------------
 # AGUA CALIENTE
 # ------------------------------------------------------------
@@ -1204,11 +1230,12 @@ aux =  10**logKWH_real * pred_per['AGUA_SANITARIA'] * precio_kwh *0.20 /100
 if vars['AGUA_CALIENTE_electrica'] == 1:
     recomendaciones.append(
         "Tu hogar utiliza un calentador de agua eléctrico que representa aproximadamente el "
-        "{0:.0f}% del consumo total de electricidad. Reducir la temperatura del calentador en "
+        f"{pred_per['AGUA_SANITARIA']:.0f}% del consumo total de electricidad. Reducir la temperatura del calentador en "
         "10 °C (20 ºF) puede disminuir su consumo de energía en hasta un 20%, lo que "
-        "representaria un ahorro de US$ {0:.0f}."
-        .format(pred_per['AGUA_SANITARIA'], aux)
+        f"representaria un ahorro de US$ {aux:.0f}."
+        
     )
+    AHORRO += aux
 
 
 # ------------------------------------------------------------
@@ -1218,13 +1245,16 @@ aux =  10**logKWH_real * pred_per['AIRE_ACONDICIONADO'] * precio_kwh *0.15 /100
 
 if pred_per['AIRE_ACONDICIONADO'] > 10:
     recomendaciones.append(
-        "El aire acondicionado representa aproximadamente el {0:.0f}% del consumo total de "
+        f"El aire acondicionado representa aproximadamente el {pred_per['AIRE_ACONDICIONADO']:.0f}% del consumo total de "
         "electricidad de tu hogar. Mantener la temperatura lo más alta posible dentro de un "
         "nivel confortable puede reducir significativamente su consumo; se estima "
         "que con solo subir el termostato 1 °C (2ºF) y utilizar un ventilador de techo puede reducir el "
-        "costo de refrigeración hasta un 15% representando un ahorro de US$ {0:.0f}."
-        .format(pred_per['AIRE_ACONDICIONADO'], aux)
+        f"costo de refrigeración hasta un 15% representando un ahorro de US$ {aux:.0f}."
+        
     )
+
+    AHORRO += aux
+
 
 
 # ------------------------------------------------------------
@@ -1234,11 +1264,12 @@ aux =  10**logKWH_real * pred_per['CALEFACCION'] * precio_kwh *0.20 /100
 
 if pred_per['CALEFACCION'] > 10:
     recomendaciones.append(
-        "La calefacción eléctrica representa aproximadamente el {0:.0f}% del consumo total "
+        f"La calefacción eléctrica representa aproximadamente el {pred_per['CALEFACCION']:.0f}% del consumo total "
         "de electricidad de tu hogar. Reducir la temperatura de calefacción en 2 °C (4º F) puede "
-        "disminuir el consumo de calefacción en hasta un 20%, representando aproximadamente US$ {0:.0f}."
-        .format(pred_per['CALEFACCION'], aux)
+        f"disminuir el consumo de calefacción en hasta un 20%, representando aproximadamente US$ {aux:.0f}."
     )
+    AHORRO += aux
+    
 
 
 # ------------------------------------------------------------
@@ -1263,10 +1294,11 @@ if (10**vars['VENTANAS_log'] - 1 > 3 * (10**vars['DORMITORIOS_log'] - 1)):
         "Tu hogar tiene una cantidad de ventanas elevada en relación con su tamaño. Mejorar "
         "su aislamiento, por ejemplo mediante ventanas de doble acristalamiento, vidrios "
         "Low-E o sellado de filtraciones, puede reducir las pérdidas de calor y las ganancias "
-        "de calor. Las ventanas representan aproximadamente un 25% de la energía utilizada "
+        "de calor. Las ventanas representan hasta un 25% de la energía utilizada "
         "para calefacción y refrigeración en los hogares, por lo que su mejora puede generar "
-        "ahorros relevantes."
+        f"ahorros de hasta US$ {aux:.0f}"
     )
+    AHORRO += aux
 
 
 # ------------------------------------------------------------
@@ -1279,8 +1311,9 @@ if (vars['SECARROPAS_electrico'] == 1) & (vars['LAVARROPAS_frecuencia_log'] >= n
         "Tu hogar utiliza un secarropas eléctrico y realiza lavados con frecuencia. Siempre "
         "que las condiciones lo permitan, considera secar la ropa al aire libre: evitar el "
         "secado eléctrico puede reducir el consumo asociado al lavado de ropa. Reducir el"
-        "uso del secarropas a la mitad puede significar un ahorro de US${0:.0f}"
+        f"uso del secarropas a la mitad puede significar un ahorro de US${aux:.0f}"
     )
+    AHORRO += aux
 
 
 
@@ -1292,10 +1325,9 @@ if (vars['SECARROPAS_electrico'] == 1) & (vars['LAVARROPAS_frecuencia_log'] >= n
 if pred_per['OTROS'] > 25:
     recomendaciones.append(
         "Una parte importante del consumo de tu hogar corresponde a otros usos de electricidad, "
-        "que representan aproximadamente el {0:.0f}% del total. Un consumo elevado en esta "
+        f"que representan aproximadamente el {pred_per['OTROS']:.0f}% del total. Un consumo elevado en esta "
         "categoría puede estar asociado a equipos de alto consumo como bombas de piscina, "
         "bombas de riego u otros equipos que funcionan durante varias horas."
-        .format(pred_per['OTROS'])
     )
 
 
@@ -1312,9 +1344,10 @@ if max(
     recomendaciones.append(
         "Algunos equipos, especialmente los de mayor antigüedad, "
         "siguen utilizando electricidad aunque estén apagados. En un hogar típico, este "
-        "consumo puede representar cerca del 10% de la electricidad residencial equivalente a US${0:.0f}."
-        .format(aux)
+        f"consumo puede representar cerca del 10% de la electricidad residencial equivalente a US${aux:.0f}."
+        
     )
+    AHORRO+=aux
 
 #--------------------------------------------------
 # ILUMINACIÓN
@@ -1324,28 +1357,33 @@ aux2 =  10**logKWH_real * pred_per['ILUMINACION'] * precio_kwh *0.90 /100
 
 if pred_per['ILUMINACION'] > 10:
     recomendaciones.append(
-        "La iluminación representa aproximadamente el {0:.0f}% del consumo total "
+        f"La iluminación representa aproximadamente el {pred_per['ILUMINACION']:.0f}% del consumo total "
         "de electricidad de tu hogar. Cambiar el uso de focos incandecentes o halogénos a LED puede "
-        "disminuir el consumo en iluminación en hasta un 90%, representando aproximadamente US$ {0:.0f}."
+        f"disminuir el consumo en iluminación en hasta un 90%, representando aproximadamente US$ {aux:.0f}."
         "Por otro lado, si se utiliza iluminación natural o por agua, o se apagan luces innecesarias, "
-        "reduciendo el uso de las mismas a la mitad se podrían ahorrar aproximadamente US$ {0:.0f}."
-        .format(pred_per['ILUMINACION'], aux2, aux)
+        f"reduciendo el uso de las mismas a la mitad se podrían ahorrar aproximadamente US$ {aux2:.0f}."
     )
+    AHORRO+=aux2 # solo por apagar las luces
+
+#--------------------------------------------------
+# REFRIGERACION
+# ------------------------------------------------------------
 aux =  10**logKWH_real * pred_per['REFRIGERACION'] * precio_kwh *0.30 /100
 aux2 =  10**logKWH_real * pred_per['REFRIGERACION'] * precio_kwh *0.05 /100
 
 if pred_per['REFRIGERACION'] > 10:
-    # aux_refe_eficiencia: ahorro aproximado por mantenimiento o cambio a Energy Star (aprox. 15-30% del consumo)
-    # aux_refe_habitos: ahorro por ajustar temperatura y buenos hábitos (aprox. 10% del consumo)
+    # aux: ahorro aproximado por mantenimiento o cambio a Energy Star (aprox. 15-30% del consumo)
+    # aux2: ahorro por ajustar temperatura y buenos hábitos (aprox. 10% del consumo)
     
     recomendaciones.append(
-        "El sistema de refrigeración representa aproximadamente el {0:.0f}% del consumo total "
-        "de electricidad de tu hogar. Mantener limpios los serpentines traseros y asegurar que los empaques "
-        "de las puertas sellen correctamente puede disminuir el consumo de estos equipos hasta en un 30%, "
-        "lo que representaría un ahorro aproximado de US$ {0:.0f} al año. Configurar el refrigerador a un mínimo de 3°C (38ºF), y el congelador "
-        "a -18°C (0ºF). Cada grado por debajo de este nivel aumenta el consumo un 5%, es decir US$ {0:.0f}."
-        .format(pred_per['REFRIGERACION'], aux, aux2)
+        f"El sistema de refrigeración representa aproximadamente el {pred_per['REFRIGERACION']:.0f}% del consumo total "
+        f"de electricidad de tu hogar. Mantener limpios los serpentines traseros y asegurar que los empaques "
+        f"de las puertas sellen correctamente puede disminuir el consumo de estos equipos hasta en un 30%, "
+        f"lo que representaría un ahorro aproximado de US$ {aux :.0f} al año. Configurar el refrigerador a un mínimo de 3°C (38ºF), y el congelador "
+        f"a -18°C (0ºF). Cada grado por debajo de este nivel aumenta el consumo un 5%, es decir US$ {aux2 :.0f}."
+        
     )
+    AHORRO+=aux # mantenimieno del refrigerador
 
     if (obs['freezer'] >= 1) or (obs['refrigerador'] > 1):
       aux =  400 * precio_kwh *  (obs['freezer'] + obs['refrigerador']-1)         #400 es el consumo promedio del regrigerador
@@ -1354,13 +1392,23 @@ if pred_per['REFRIGERACION'] > 10:
       recomendaciones.append(
           "Los congeladores y segundos refrigeradores (especialmente si son modelos antiguos) consumen energía de forma "
           "continua las 24 horas. Desconectar los equipos secundarios "
-          "te podría generar un ahorro aproximadamente US$ {0:.0f} al año o incluso US$ {0:.0f} si son equipos antiguos de alto consumo."
+          f"te podría generar un ahorro aproximadamente US$ {aux:.0f} al año o incluso US$ {aux2:.0f} si son equipos antiguos de alto consumo."
           .format(aux, aux2)
       )
+      AHORRO+=aux # equipos nuevos
 
 
 
 
+recomendaciones.append(f"Siguiendo estas recomendaciones puedes ahorrar hasta US$ {AHORRO:.0f} por año.")
+
+#Advierte que el ahorro potencial es optimista en hogares eficientes
+if INDICE_DE_EFICIENCIA >= 20:
+  advertencias.append("Tu hogar presenta una eficiencia elevada, es probable que ya estes aplicando muchas de las recomendaciones que te dimos ¡Lo que es excelente!"
+                      "Pero nuestra estimación del ahorro potencial resultará demasiado optimista.")
+elif INDICE_DE_EFICIENCIA >= -20:
+  advertencias.append("Tu hogar presenta una eficiencia moderada, es probable que ya estes aplicando algubas de las recomendaciones que te dimos;"
+                      "Nuestra estimación del ahorro potencial resultará levemente optimista.")
 
 
 
@@ -1373,11 +1421,11 @@ result['salida'] = {
   'Ranking interpretacion': RANKING_INTERPRETACION,
 
 
-  'Consumo esperado para hogares de tus mismas caracterizticas (KWH anual)': 10**logKWH_base,
+  'Consumo esperado para hogares de tus mismas caracterizticas (KWH anual)': int(10**logKWH_base),
   'Perfil de consumo': PERFIL_DE_CONSUMO,
   'Probabilidad': CONFIANZA,
 
-  'Indice de eficiencia': INDICE_DE_EFICIENCIA,
+  'Indice de eficiencia': int(INDICE_DE_EFICIENCIA),
   'Perfil de eficiencia': PERFIL_DE_EFICIENCIA,
 
 
@@ -1391,6 +1439,8 @@ result['salida'] = {
   'Consumo en television (porcentaje)': pred_per['TV'],
   'Consumo en otros (porcentaje)': pred_per['OTROS'],
 
+  'Ahorro potencial (US$ por año)': int(AHORRO),
+
 }
 result['salida_complementaria'] ={
    'advertencias' : advertencias,
@@ -1399,8 +1449,8 @@ result['salida_complementaria'] ={
 
 
 result['estimacion_financiera'] = { 
-  'Gastos estimados en dolares (anual)' : CONSUMO * PRECIO_KWH_PAIS[PAISES[obs['pais']]],
-  'Gastos estimados en dolares (mensual)' : CONSUMO * PRECIO_KWH_PAIS[PAISES[obs['pais']]]/12,
+  'Gastos estimados en dolares (anual)' : round(CONSUMO * PRECIO_KWH_PAIS[PAISES[obs['pais']]], 2),
+  'Gastos estimados en dolares (mensual)' : round(CONSUMO * PRECIO_KWH_PAIS[PAISES[obs['pais']]]/12, 2),
   'Tarifa utilizada (US$ por KWH)': PRECIO_KWH_PAIS[PAISES[obs['pais']]]
 }
 
