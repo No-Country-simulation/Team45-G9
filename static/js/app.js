@@ -106,9 +106,12 @@ function updateProgressBar() {
 
   progressSteps.forEach((step, index) => {
     const stepNum = index + 1;
-    step.classList.remove('progress-step--active', 'progress-step--done');
-    if (stepNum === currentStep)       step.classList.add('progress-step--active');
-    else if (stepNum < currentStep)    step.classList.add('progress-step--done');
+    step.classList.remove('progress-step--active', 'progress-step--done', 'active', 'completed');
+    if (stepNum === currentStep) {
+      step.classList.add('progress-step--active', 'active');
+    } else if (stepNum < currentStep) {
+      step.classList.add('progress-step--done', 'completed');
+    }
   });
 }
 
@@ -506,6 +509,26 @@ function resetearTodo() {
 }
 
 // ── 8. EVENT LISTENERS ───────────────────────────────────────
+progressSteps.forEach(stepBtn => {
+  stepBtn.addEventListener('click', () => {
+    const targetStep = parseInt(stepBtn.dataset.step, 10);
+    if (!targetStep || targetStep === currentStep) return;
+
+    if (targetStep > currentStep) {
+      if (!validarPaso(currentStep)) return;
+    }
+
+    currentStep = targetStep;
+    showStep(currentStep);
+    saveState();
+
+    const wizardElem = document.getElementById('wizardContainer') || document.querySelector(`.wizard-step[data-step="${currentStep}"]`);
+    if (wizardElem) {
+      wizardElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+
 document.getElementById('btnNext1')?.addEventListener('click', nextStep);
 document.getElementById('btnNext2')?.addEventListener('click', nextStep);
 document.getElementById('btnNext3')?.addEventListener('click', nextStep);
@@ -661,7 +684,7 @@ function mostrarResultados(res, payload) {
   const fmt = val => (typeof val === 'number' ? val.toLocaleString('es') : val);
   const sufijo = moneda ? ` ${moneda}` : '';
 
-  // ── Narrativa LLM (oculta en pantalla, disponible para imprimir) ──
+  // ── Narrativa del diagnóstico (oculta en pantalla, disponible para imprimir) ──
   const narrativaEl = document.getElementById('narrativa');
   if (narrativaEl) narrativaEl.textContent = narrativa;
 
@@ -791,7 +814,7 @@ function poblarFactura() {
   if (el('fptAhorro'))    el('fptAhorro').textContent    = `${simbolo} ${fmt(ahorroVal)}${sufijo}`;
 
   // ── Recomendaciones ──
-  // ── Narrativa del modelo ──
+  // ── Narrativa del diagnóstico ──
   // Destino real del texto que hasta ahora se generaba en cada cálculo, se
   // escribía en un div oculto y no se leía en ninguna parte: `narrativa` se
   // desestructuraba aquí arriba y no se usaba en ninguna línea de la función.

@@ -227,26 +227,37 @@ select, input { font-family: var(--font); }
 /* ── 6. WIZARD ─────────────────────────────────────────────── */
 .wizard { flex: 1; min-width: 0; }
 
-/* Progress bar */
-.progress-bar { margin-bottom: 1.25rem; }
+/* Progress bar con conector fluido */
+.progress-bar {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
 
 .progress-bar__track {
-  height: 5px;
+  position: absolute;
+  top: 16px;
+  left: 30px;
+  right: 30px;
+  height: 4px;
   background: var(--gris);
   border-radius: var(--r-full);
+  z-index: 1;
+  transform: translateY(-50%);
+  margin-bottom: 0;
   overflow: hidden;
-  margin-bottom: 0.85rem;
 }
 
 .progress-bar__fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--verde), var(--azul));
+  background: linear-gradient(90deg, #009E73, var(--azul));
   border-radius: var(--r-full);
   width: 0%;
   transition: width 0.5s var(--ease);
 }
 
 .progress-bar__steps {
+  position: relative;
+  z-index: 2;
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
@@ -256,47 +267,77 @@ select, input { font-family: var(--font); }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
   background: none;
   border: none;
   cursor: pointer;
-  opacity: 0.45;
-  transition: opacity 0.2s;
+  opacity: 0.65;
+  transition: opacity 0.3s var(--ease), transform 0.2s var(--ease);
   flex: 1;
+  outline: none;
+}
+
+.progress-step:hover {
+  opacity: 1;
+  transform: translateY(-2px);
 }
 
 .progress-step--active,
-.progress-step--done { opacity: 1; }
+.progress-step.active,
+.progress-step--done,
+.progress-step.completed {
+  opacity: 1;
+}
 
 .progress-step__circle {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--gris);
+  background: var(--hueso);
+  border: 2px solid var(--gris);
   color: var(--carbon);
   font-size: 0.82rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.3s, color 0.3s, transform 0.25s var(--spring);
+  transition: background 0.3s var(--ease), border-color 0.3s var(--ease), color 0.3s var(--ease), transform 0.3s var(--spring), box-shadow 0.3s var(--ease);
 }
 
-.progress-step--active .progress-step__circle {
-  background: var(--azul);
-  color: var(--white);
+.progress-step:hover .progress-step__circle {
+  border-color: #009E73;
+  color: #009E73;
   transform: scale(1.1);
 }
 
-.progress-step--done .progress-step__circle {
+.progress-step--active .progress-step__circle,
+.progress-step.active .progress-step__circle {
+  background: #009E73 !important;
+  border-color: #009E73 !important;
+  color: var(--white) !important;
+  transform: scale(1.15);
+  box-shadow: 0 0 10px rgba(0, 158, 115, 0.4);
+}
+
+.progress-step--done .progress-step__circle,
+.progress-step.completed .progress-step__circle {
   background: var(--verde);
+  border-color: var(--verde);
   color: var(--white);
 }
 
 .progress-step__label {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: var(--azul-oscuro);
+  transition: color 0.2s var(--ease);
+}
+
+.progress-step:hover .progress-step__label,
+.progress-step--active .progress-step__label,
+.progress-step.active .progress-step__label {
+  color: #009E73;
+  font-weight: 700;
 }
 
 /* ── 7. STEPS — Transición suave entre pasos ─────────────── */

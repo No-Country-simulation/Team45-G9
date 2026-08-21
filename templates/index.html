@@ -534,7 +534,7 @@
               </div>
             </div>
 
-            <!-- Narrativa del LLM: oculta en pantalla, disponible para la factura -->
+            <!-- Narrativa del diagnóstico: oculta en pantalla, disponible para la factura -->
             <div id="narrativa" hidden aria-hidden="true"></div>
 
 
@@ -657,9 +657,7 @@
         </div>
       </div>
 
-      <!-- Lectura en prosa del diagnóstico. Es el destino de la narrativa del
-           modelo: hasta ahora se generaba en cada cálculo y se escribía en un
-           div oculto que nadie llegaba a ver nunca. -->
+      <!-- Lectura en prosa del diagnóstico para la factura. -->
       <p class="fpt-narrativa" id="fptNarrativa" hidden></p>
     </section>
 
@@ -682,7 +680,7 @@
   </div><!-- /#factura-print-template -->
 
   <footer class="footer no-print">
-    <p>VólticvS © 2026 — Tu asesor energético inteligente · Equipo Volti</p>
+    <p>VólticvS © 2026 — Equipo Volti</p>
   </footer>
 
   <script src="/static/js/app.js"></script>
