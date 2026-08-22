@@ -34,6 +34,13 @@
     @keyframes denji-idle-sway{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-4px) rotate(-1.2deg)}}
     #denji-sprite.denji-idle{animation:denji-idle-sway 2.2s ease-in-out infinite}
     #denji-hud{position:fixed;left:20px;bottom:20px;width:300px;z-index:9998;display:flex;flex-direction:column;gap:8px;font-family:system-ui,-apple-system,sans-serif}
+    /* En pantallas chicas, el cuadro de preguntas tapaba el formulario real
+       (estaba pensado para el espacio libre de una pantalla ancha). Denji
+       sigue visible y animando; el usuario responde directo en el formulario,
+       que ya está sincronizado en ambos sentidos con este mismo script. */
+    @media (max-width: 640px){
+      #denji-hud{ display:none !important; }
+    }
     #denji-card{background:#fff;border:1px solid #ddd;border-radius:12px;padding:16px;font-size:14px;color:#1a1a1a;box-shadow:0 2px 10px rgba(0,0,0,.12)}
     #denji-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
     #denji-progress-wrap{width:100%;height:4px;background:#e5e5e5;border-radius:2px;overflow:hidden}
@@ -509,8 +516,23 @@
   ];
   let waypointIdx = 0;
 
+  function esPantallaChica(){
+    return window.innerWidth <= 640;
+  }
+
   function moverA(destinoKey){
     if(!asistenteActivo) return;
+
+    if(esPantallaChica()){
+      // En celular no hay espacio libre para caminar hacia un campo sin
+      // taparlo — se queda fijo en una esquina, animando igual, mientras el
+      // usuario responde directo en el formulario (ya sincronizado).
+      sprite.style.transition = 'none';
+      sprite.style.left = (window.innerWidth - 78) + 'px';
+      sprite.style.top = '12px';
+      return;
+    }
+
     let el = null;
     if(destinoKey){
       el = elementoVisualPara(destinoKey); // 1) mapeo real confirmado con el código de JC

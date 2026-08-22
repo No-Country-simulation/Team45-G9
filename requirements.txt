@@ -5,6 +5,27 @@ flask>=3.0.0
 flask-limiter>=3.5.0
 pdfplumber>=0.11.0
 gunicorn>=22.0.0
+# Fase A/B: src/modelo.py carga y usa el modelo entrenado en CADA análisis,
+# no solo al regenerar el notebook — joblib.load() además necesita
+# scikit-learn instalado para reconstruir el pipeline, aunque el código de
+# producción nunca lo importe directo. Sin esto acá, la app revienta con
+# ModuleNotFoundError en la primera petición real, no al arrancar (donde
+# se habría notado antes).
+joblib>=1.3.0
+pandas>=2.2.0
+# Fijado exacto, no un rango: tiene que ser la MISMA versión con la que se
+# entrenó el modelo (ver modelos/metadatos.json -> version_sklearn). Un
+# rango abierto (>=1.4.0) deja que dos máquinas instalen versiones distintas
+# entre sí y del modelo serializado — confirmado en una prueba real: con
+# scikit-learn 1.9.0 cargando un modelo entrenado en 1.8.0, sklearn avisa
+# "InconsistentVersionWarning" en cada predicción. Si el modelo se
+# re-entrena, esta línea se actualiza junto con metadatos.json.
+scikit-learn==1.8.0
+# Se usa directo en src/modelo.py para el percentil del score de eficiencia
+# (scipy.stats.percentileofscore) — declarado explícito, no basta con que
+# venga de arrastre con scikit-learn (mismo tipo de bug que joblib/pandas
+# antes: código propio que usa una librería que no estaba en requirements.txt).
+scipy==1.18.0
 # Fase E: descarga el modelo entrenado desde Object Storage al arrancar, si
 # no está ya en local. Si el paquete faltara por algún motivo, oci_storage.py
 # lo detecta y degrada solo — no tumba el arranque de la app.

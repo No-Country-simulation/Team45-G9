@@ -179,6 +179,14 @@ function validarPaso(pasoActual) {
       showError(sel, 'Por favor, selecciona un país.');
       valido = false;
     }
+    // La ubicación completa (país + provincia/estado) es la única sección que
+    // no puede quedar en blanco — el modelo de eficiencia la necesita para
+    // la tarifa, el clima, y los coeficientes de regresión por región.
+    const provincia = document.getElementById('selectProvincia');
+    if (provincia && !provincia.value?.trim()) {
+      showError(provincia, 'Indica tu provincia, estado o región — el cálculo de eficiencia lo necesita.');
+      valido = false;
+    }
   }
 
   if (pasoActual === 3) {
@@ -187,7 +195,7 @@ function validarPaso(pasoActual) {
       const algunoActivo = Array.from(document.querySelectorAll('#step3 .equip-toggle'))
         .some(el => el.checked);
       if (!algunoActivo) {
-        mostrarErrorGlobal('Selecciona al menos un artefacto, o marca "No quiero responder esta sección".');
+        mostrarErrorGlobal('Selecciona al menos un artefacto, o marca "Ninguno de estos equipos está en mi vivienda".');
         valido = false;
       }
     }
@@ -513,6 +521,28 @@ document.getElementById('btnPrev2')?.addEventListener('click', prevStep);
 document.getElementById('btnPrev3')?.addEventListener('click', prevStep);
 document.getElementById('btnPrev4')?.addEventListener('click', prevStep);
 
+// ── Navegación directa por botones de progreso (directriz: desplazamiento
+// entre Ubicación/Vivienda/Equipamiento/Rutinas) ────────────────────────────
+progressSteps.forEach((btn) => {
+  btn.style.cursor = 'pointer';
+  btn.addEventListener('click', () => {
+    const target = parseInt(btn.dataset.step, 10);
+    if (target === currentStep) return;
+    // Ir hacia atrás siempre permitido; hacia adelante valida pasos intermedios
+    if (target < currentStep) {
+      currentStep = target;
+      showStep(currentStep);
+    } else {
+      for (let s = currentStep; s < target; s++) {
+        if (!validarPaso(s)) return;
+      }
+      currentStep = target;
+      showStep(currentStep);
+      saveState();
+    }
+  });
+});
+
 document.getElementById('btnNuevoCalculo')?.addEventListener('click', resetearTodo);
 document.getElementById('flagAnual')?.addEventListener('change', e => {
   const label = document.getElementById('flagAnualLabel');
@@ -580,8 +610,8 @@ document.getElementById('btnSubmit')?.addEventListener('click', async (evento) =
     lavado_frecuencia:     parseInt(v('lavadoFrecuencia')?.value) || 0,
     refrigerador:          parseInt(v('refrigerador')?.value) || 0,
     freezer:               parseInt(v('freezer')?.value) || 0,
-    luces_exterior:        0,
-    luces_interior:        0,
+    luces_exterior:        parseInt(v('inputLucesExterior')?.value) || 0,
+    luces_interior:        parseInt(v('inputLucesInterior')?.value) || 0,
     tv:                    parseInt(v('tv')?.value) || 0,
     tv_frecuencia:         horasDiariasTv * 7,
     tipo_inmueble:         tipoInmuebleSeleccionado,
@@ -628,6 +658,111 @@ document.getElementById('btnSubmit')?.addEventListener('click', async (evento) =
 });
 
 // ── 8B. MOSTRAR RESULTADOS EN DOM ────────────────────────────
+/** Gráfico de torta en SVG puro (sin librería externa, mismo criterio que el
+ * resto del proyecto: sin CDN). Recibe { "Refrigerador": 36.0, ... } y arma
+ * el gráfico + una leyenda con el porcentaje real de cada categoría. */
+const COLORES_TORTA = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#8b5cf6', '#0891b2', '#db2777', '#65a30d', '#ea580c', '#4f46e5'];
+
+function renderGraficoTorta(desglose, contenedorId) {
+  const contenedor = document.getElementById(contenedorId);
+  if (!contenedor) return;
+  contenedor.innerHTML = '';
+
+  const entradas = Object.entries(desglose || {}).filter(([, kwh]) => kwh > 0);
+  if (entradas.length === 0) {
+    contenedor.innerHTML = '<p style="font-size:0.82rem;color:#64748b;">Sin desglose disponible para este cálculo.</p>';
+    return;
+  }
+
+  const total = entradas.reduce((suma, [, kwh]) => suma + kwh, 0);
+  const cx = 90, cy = 90, r = 80;
+  let anguloActual = -90; // empieza arriba, sentido horario
+
+  const paths = entradas.map(([nombre, kwh], i) => {
+    const porcentaje = kwh / total;
+    const anguloBarrido = porcentaje * 360;
+    const anguloInicio = anguloActual;
+    const anguloFin = anguloActual + anguloBarrido;
+    anguloActual = anguloFin;
+
+    const rad = deg => (deg * Math.PI) / 180;
+    const x1 = cx + r * Math.cos(rad(anguloInicio));
+    const y1 = cy + r * Math.sin(rad(anguloInicio));
+    const x2 = cx + r * Math.cos(rad(anguloFin));
+    const y2 = cy + r * Math.sin(rad(anguloFin));
+    const arcoGrande = anguloBarrido > 180 ? 1 : 0;
+    const color = COLORES_TORTA[i % COLORES_TORTA.length];
+
+    // Una sola porción == círculo completo (100%) — un arco no se puede
+    // dibujar así, se dibuja un círculo directo en ese caso.
+    if (entradas.length === 1) {
+      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"></circle>`;
+    }
+    return `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${arcoGrande} 1 ${x2},${y2} Z" fill="${color}"></path>`;
+  }).join('');
+
+  const leyenda = entradas.map(([nombre, kwh], i) => {
+    const pct = Math.round((kwh / total) * 100);
+    const color = COLORES_TORTA[i % COLORES_TORTA.length];
+    return `<div style="display:flex;align-items:center;gap:0.4rem;font-size:0.78rem;margin:0.2rem 0;">
+      <span style="width:11px;height:11px;border-radius:3px;background:${color};flex-shrink:0;"></span>
+      <span style="color:#334155;">${nombre}: <strong>${pct}%</strong> (${kwh.toFixed(1)} kWh)</span>
+    </div>`;
+  }).join('');
+
+  contenedor.innerHTML = `
+    <div style="display:flex;gap:1.2rem;align-items:center;flex-wrap:wrap;">
+      <svg viewBox="0 0 180 180" style="width:150px;height:150px;flex-shrink:0;">${paths}</svg>
+      <div style="flex:1;min-width:160px;">${leyenda}</div>
+    </div>`;
+}
+
+/** Escala de eficiencia energética (estilo etiquetado A++ a G), con el
+ * color confirmado: verde en A++, rojo en G. Marca con una flecha en cuál
+ * letra cae este hogar — igual que la imagen de referencia que mandó el líder. */
+const ESCALA_LETRAS = [
+  { letra: 'A++', color: '#0d7a3d' },
+  { letra: 'A+',  color: '#2fa84f' },
+  { letra: 'A',   color: '#6cbf3f' },
+  { letra: 'B',   color: '#a9cc39' },
+  { letra: 'C',   color: '#e8d631' },
+  { letra: 'D',   color: '#f0ad2e' },
+  { letra: 'E',   color: '#f0812e' },
+  { letra: 'F',   color: '#e8501f' },
+  { letra: 'G',   color: '#d92b1f' },
+];
+
+function renderEscalaEficiencia(letra, score, interpretacion, contenedorId) {
+  const contenedor = document.getElementById(contenedorId);
+  if (!contenedor) return;
+
+  if (!letra) {
+    contenedor.innerHTML = '<p style="font-size:0.82rem;color:#64748b;">Escala no disponible para este cálculo.</p>';
+    return;
+  }
+
+  const barras = ESCALA_LETRAS.map(({ letra: l, color }, i) => {
+    const esActual = l === letra;
+    const ancho = 70 + i * 6; // más angosto arriba (A++), más ancho abajo (G) — igual que la imagen
+    return `
+      <div style="display:flex;align-items:center;gap:0.5rem;margin:2px 0;">
+        <div style="width:${ancho}%;background:${color};color:#fff;font-weight:700;
+                    padding:3px 10px;font-size:0.8rem;border-radius:2px 8px 8px 2px;
+                    clip-path:polygon(0 0, 92% 0, 100% 50%, 92% 100%, 0 100%);
+                    ${esActual ? 'outline:3px solid #1e3a5f;outline-offset:1px;' : ''}">
+          ${l}
+        </div>
+        ${esActual ? '<span style="font-size:1.1rem;">◀ tu hogar</span>' : ''}
+      </div>`;
+  }).join('');
+
+  contenedor.innerHTML = `
+    <div style="max-width:320px;">${barras}</div>
+    <p style="font-size:0.8rem;color:#334155;margin-top:0.5rem;">
+      Score: <strong>${score}</strong> (rango -100 a +100) — eficiencia <strong>${interpretacion}</strong>
+    </p>`;
+}
+
 function mostrarResultados(res, payload) {
   if (resultadosSeccion) resultadosSeccion.hidden = false;
 
@@ -653,13 +788,14 @@ function mostrarResultados(res, payload) {
     ?? res.ahorro_potencial
     ?? (typeof costoVal === 'number' ? Math.round(costoVal * 0.2) : 0);
 
+  const fmt = val => (typeof val === 'number' ? val.toLocaleString('es') : val);
+
   const categoria = res.categoria || 'Moderado';
   let narrativa = (res.narrativa || '').replace(/CLP/g, moneda || window._monedaActiva || '');
   if (!narrativa) {
     narrativa = `Categoría: ${categoria}. Consumo estimado: ${consumoVal} kWh, costo aprox. ${simbolo} ${fmt(costoVal)} ${moneda}.`;
   }
 
-  const fmt = val => (typeof val === 'number' ? val.toLocaleString('es') : val);
   const sufijo = moneda ? ` ${moneda}` : '';
 
   // ── Narrativa LLM (oculta en pantalla, disponible para imprimir) ──
@@ -680,6 +816,10 @@ function mostrarResultados(res, payload) {
   if (el('metricaKwh'))    el('metricaKwh').textContent    = `${consumoVal} kWh`;
   if (el('metricaAhorro')) el('metricaAhorro').textContent = `${simbolo} ${fmt(ahorroAnual)}${sufijo}`.trim();
   if (el('metricaAccion')) el('metricaAccion').textContent = primeraAccion;
+
+  // ── Escala de eficiencia (A++ a G) y gráfico de torta — ambos con datos reales ──
+  renderEscalaEficiencia(res.letra_eficiencia, res.score_eficiencia, res.interpretacion_eficiencia, 'escalaEficiencia');
+  renderGraficoTorta(res.desglose, 'graficoTortaWrap');
 
   // ── Lista de recomendaciones ──
   const lista = el('listaRecomendaciones');

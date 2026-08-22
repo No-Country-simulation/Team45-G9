@@ -1,7 +1,16 @@
 [tool.ruff]
 target-version = "py312"
 line-length = 120
-exclude = ["venv", ".venv", "uploads"]
+exclude = [
+    "venv", ".venv", "uploads",
+    # Copia mecánica del script original de datacience (ver el docstring del
+    # archivo) — no se retipeó ninguna línea a propósito, para no arriesgar
+    # un cambio de comportamiento al "limpiarlo". docs/referencia/ tampoco
+    # se lintea: es la fuente original intacta, ni siquiera se importa en
+    # producción.
+    "src/modelo_real_datacience.py",
+    "docs/referencia",
+]
 
 [tool.ruff.lint]
 # Arranque deliberadamente conservador: pyflakes (F) + los errores de

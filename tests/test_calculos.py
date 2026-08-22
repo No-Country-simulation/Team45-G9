@@ -238,3 +238,55 @@ def test_estimar_factura_total_suma_y_valoriza():
     resultado = calculos.estimar_factura_total([10, 20, 30], TARIFA_CL)
     assert resultado["kwh_mes_total_estimado"] == 60
     assert resultado["clp_mes_total_estimado"] == 9000.0
+
+
+# ── Iluminación exterior/interior en estimar_desde_perfil ──────────────────────
+
+def _perfil_base(**overrides):
+    base = {
+        "dormitorios": 1, "ventanas": 1, "habitantes_mayores": 1, "habitantes_menores": 0,
+        "aire_acondicionado": 0, "calefaccion_electrica": 0, "agua_caliente_electrica": 0,
+        "secarropas_electrico": 0, "horno_electrico": 0, "refrigerador": 0, "freezer": 0,
+        "tv": 0, "tv_frecuencia": 0, "lavado_frecuencia": 0,
+        "luces_exterior": 0, "luces_interior": 0,
+    }
+    base.update(overrides)
+    return base
+
+
+def test_sin_luces_no_agrega_las_categorias_nuevas_al_desglose():
+    resultado = calculos.estimar_desde_perfil(_perfil_base(), TARIFA_CL)
+    # Ojo: sí existe una categoría base "Iluminación y uso base por
+    # habitantes" (genérica, sin relación a los contadores de luces) — acá se
+    # comprueban las claves NUEVAS específicas, no cualquier texto que
+    # contenga "Iluminación".
+    assert "Iluminación exterior" not in resultado["desglose"]
+    assert "Iluminación interior" not in resultado["desglose"]
+
+
+def test_luces_exterior_aparecen_en_el_desglose():
+    resultado = calculos.estimar_desde_perfil(_perfil_base(luces_exterior=3), TARIFA_CL)
+    assert "Iluminación exterior" in resultado["desglose"]
+    assert resultado["desglose"]["Iluminación exterior"] > 0
+
+
+def test_luces_interior_aparecen_en_el_desglose():
+    resultado = calculos.estimar_desde_perfil(_perfil_base(luces_interior=5), TARIFA_CL)
+    assert "Iluminación interior" in resultado["desglose"]
+
+
+def test_luces_exterior_e_interior_juntas_no_se_pisan():
+    """Bug real encontrado al conectarlas: ambas devolvían el mismo 'nombre'
+    de consumo_iluminacion() y una tapaba a la otra en el desglose — el total
+    seguía siendo correcto (se suma desde `items`, no desde el desglose), pero
+    la persona veía solo una de las dos categorías, nunca ambas."""
+    resultado = calculos.estimar_desde_perfil(_perfil_base(luces_exterior=2, luces_interior=4), TARIFA_CL)
+    assert "Iluminación exterior" in resultado["desglose"]
+    assert "Iluminación interior" in resultado["desglose"]
+    assert resultado["desglose"]["Iluminación exterior"] != resultado["desglose"]["Iluminación interior"]
+
+
+def test_mas_luces_interior_consume_mas_que_menos_luces():
+    pocas = calculos.estimar_desde_perfil(_perfil_base(luces_interior=1), TARIFA_CL)
+    muchas = calculos.estimar_desde_perfil(_perfil_base(luces_interior=10), TARIFA_CL)
+    assert muchas["consumo_kwh"] > pocas["consumo_kwh"]

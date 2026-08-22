@@ -64,37 +64,43 @@ select, input { font-family: var(--font); }
 
 /* ── 3. HEADER ─────────────────────────────────────────────── */
 .header {
-  background: var(--azul-oscuro);
-  border-bottom: 3px solid var(--verde);
-  padding: 0.85rem 1.5rem;
+  padding: 0;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: var(--s-md);
 }
 
 .header__inner {
   max-width: 1100px;
   margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  padding: 0 1.25rem;
 }
 
 .header__brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
+  width: 220px; /* mismo ancho que .volti-panel, para que quede alineado abajo */
+  background: var(--azul-oscuro);
+  border-bottom: 3px solid var(--verde);
+  padding: 0.7rem 0.9rem;
+  box-shadow: var(--s-md);
+}
+
+.header__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0; /* permite que el texto se achique/corte en vez de desbordar */
 }
 
 .header__logo {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
   object-position: center top;
-  border: 2.5px solid rgba(255,255,255,.35);
+  border: 2px solid rgba(255,255,255,.35);
   transition: transform 0.3s var(--spring);
   flex-shrink: 0;
 }
@@ -102,15 +108,17 @@ select, input { font-family: var(--font); }
 .header__logo:hover { transform: scale(1.08) rotate(-4deg); }
 
 .header__title {
-  font-size: 1.5rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--white);
   letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
 .header__tagline {
-  font-size: 0.82rem;
+  font-size: 0.68rem;
   color: rgba(255,255,255,.65);
+  line-height: 1.2;
 }
 
 /* ── 4. LAYOUT ─────────────────────────────────────────────── */
@@ -534,6 +542,26 @@ select, input { font-family: var(--font); }
   background: transparent;
   mix-blend-mode: normal;
   flex-shrink: 0;
+}
+
+/* Departamento y Otro usan iconos de Lucide (edificio, carpa) en vez de pixel
+   art — no había un ícono distintivo para ellos (Departamento repetía el de
+   Casa) y no hay forma de generar pixel art nuevo desde este entorno. Mismo
+   alto que .vivienda-card__img para que la grilla no salte. */
+.vivienda-card__icon {
+  width: 100%;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.4rem;
+  flex-shrink: 0;
+}
+.vivienda-card__icon svg {
+  width: 42px;
+  height: 42px;
+  stroke: var(--azul-oscuro, #1e3a5f);
+  stroke-width: 1.6;
 }
 
 .vivienda-card__title {
