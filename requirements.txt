@@ -21,6 +21,11 @@ pandas>=2.2.0
 # "InconsistentVersionWarning" en cada predicción. Si el modelo se
 # re-entrena, esta línea se actualiza junto con metadatos.json.
 scikit-learn==1.8.0
+# Se usa directo en src/modelo.py para el percentil del score de eficiencia
+# (scipy.stats.percentileofscore) — declarado explícito, no basta con que
+# venga de arrastre con scikit-learn (mismo tipo de bug que joblib/pandas
+# antes: código propio que usa una librería que no estaba en requirements.txt).
+scipy==1.18.0
 # Fase E: descarga el modelo entrenado desde Object Storage al arrancar, si
 # no está ya en local. Si el paquete faltara por algún motivo, oci_storage.py
 # lo detecta y degrada solo — no tumba el arranque de la app.

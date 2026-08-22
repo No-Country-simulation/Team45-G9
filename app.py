@@ -1010,6 +1010,7 @@ def _calcular_analisis_energetico():
     probabilidad = resultado_clasificacion["probabilidad"]
     fuente_clasificacion = resultado_clasificacion["fuente_clasificacion"]
     advertencias_modelo = resultado_clasificacion["advertencias"]
+    score_eficiencia = clasificador.calcular_score_eficiencia(d, consumo_kwh)
     recomendaciones = _recomendaciones_contextuales(categoria, d, perfil)
 
     # ── 7. Narrativa con LLM ────────────────────────────────────────────────
@@ -1035,6 +1036,13 @@ def _calcular_analisis_energetico():
         "probabilidad":    probabilidad,
         "fuente_clasificacion": fuente_clasificacion,
         "advertencias_modelo": advertencias_modelo,
+        "score_eficiencia": score_eficiencia["score"],
+        "letra_eficiencia": score_eficiencia["letra"],
+        "interpretacion_eficiencia": score_eficiencia["interpretacion"],
+        "fuente_score_eficiencia": score_eficiencia["fuente"],
+        "ranking_percentil": score_eficiencia["ranking"],
+        "perfil_consumo": score_eficiencia["perfil_consumo"],
+        "recomendaciones_modelo_real": score_eficiencia["recomendaciones_reales"],
         # C.1: los 3 campos del contrato del PDF, tal como se usaron (explícitos
         # si el caller los mandó, derivados del perfil de artefactos si no).
         "uso_horario_pico":   d["uso_horario_pico"],

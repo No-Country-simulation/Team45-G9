@@ -725,6 +725,25 @@ components:
             (reemplazados por la mediana del dataset de entrenamiento) antes de predecir.
             Lista vacía si todo llegó dentro de lo esperado, o si fuente_clasificacion es
             "umbrales" (ahí no aplica esta validación).
+        score_eficiencia:
+          type: number
+          nullable: true
+          minimum: -100
+          maximum: 100
+          description: >
+            Escala continua -100 a +100, basada en el percentil real del hogar contra la
+            distribución del dataset de entrenamiento (no la categoría de 3 clases). +100 es
+            el hogar más eficiente observado, -100 el menos. null si el dataset de referencia
+            no está disponible en este despliegue.
+        letra_eficiencia:
+          type: string
+          nullable: true
+          enum: [G, F, E, D, C, B, A, A+, A++, null]
+          description: Igual que las etiquetas de eficiencia energética (electrodomésticos, UE) — G la menos eficiente, A++ la más.
+        interpretacion_eficiencia:
+          type: string
+          nullable: true
+          enum: ["Muy baja", "Baja", "Moderada", "Alta", "Muy alta", null]
         fuente_consumo: { type: string, enum: [declarado, estimado, sin_datos] }
         fuente_ahorro: { type: string, enum: [desglose_artefactos, sin_artefactos_declarados] }
         desglose:

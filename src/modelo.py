@@ -19,6 +19,7 @@ import os
 from functools import lru_cache
 
 from src import oci_storage
+from src import modelo_real_puente
 
 RUTA_MODELO = os.getenv(
     "MODELO_CLASIFICADOR_PATH",
@@ -155,3 +156,93 @@ def clasificar(datos_hogar: dict, consumo_kwh: float, fuente_consumo: str = "est
     else:
         categoria = "Ineficiente"
     return {"categoria": categoria, "probabilidad": None, "fuente_clasificacion": "umbrales", "advertencias": []}
+
+
+# ── Score de eficiencia (-100 a +100), letra (G a A++), e interpretación ──────
+# Directriz del líder técnico: no es la categoría (Eficiente/Moderado/
+# Ineficiente) — es una escala continua, basada en el percentil real del
+# hogar contra la distribución del dataset de entrenamiento. 0 significa
+# "consume igual que la mediana"; +100 es el hogar más eficiente observado,
+# -100 el más ineficiente. La categoría de 3 clases y este score conviven:
+# la primera viene del modelo entrenado, el score es un cálculo aparte,
+# directo sobre el consumo en kWh.
+RUTA_DATASET_ENTRENAMIENTO = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "consumo_hogares.csv"
+)
+
+RANGOS_LETRA = [
+    (-100, -80, "G"), (-80, -60, "F"), (-60, -40, "E"), (-40, -20, "D"),
+    (-20, 20, "C"), (20, 40, "B"), (40, 60, "A"), (60, 80, "A+"), (80, 100, "A++"),
+]
+RANGOS_INTERPRETACION = [
+    (-100, -60, "Muy baja"), (-60, -20, "Baja"), (-20, 20, "Moderada"),
+    (20, 60, "Alta"), (60, 100, "Muy alta"),
+]
+
+
+@lru_cache(maxsize=1)
+def _cargar_distribucion_consumo():
+    """Columna consumo_kwh del dataset de entrenamiento, para calcular el
+    percentil real. None si el CSV no está disponible (deploy minimal sin
+    data/) — el score se degrada a None en ese caso, no se inventa un número."""
+    if not os.path.exists(RUTA_DATASET_ENTRENAMIENTO):
+        return None
+    import pandas as pd
+    return pd.read_csv(RUTA_DATASET_ENTRENAMIENTO)["consumo_kwh"]
+
+
+def _mapear_rango(valor: float, rangos: list) -> str:
+    """Cada rango es [mínimo, máximo) — el techo pertenece al SIGUIENTE rango,
+    no al anterior (ej. -80 es F, no G, aunque G se escriba como '-100 a -80').
+    El último rango de la lista es la única excepción: cerrado en ambos
+    extremos, para que el valor máximo exacto (100) tenga a dónde caer."""
+    for i, (minimo, maximo, etiqueta) in enumerate(rangos):
+        es_el_ultimo = i == len(rangos) - 1
+        if minimo <= valor < maximo or (es_el_ultimo and valor == maximo):
+            return etiqueta
+    return rangos[-1][2] if valor > rangos[-1][1] else rangos[0][2]
+
+
+def calcular_score_eficiencia(d: dict, consumo_kwh: float) -> dict:
+    """Devuelve {"score", "letra", "interpretacion", "fuente", "ranking",
+    "perfil_consumo", "recomendaciones_reales"}.
+
+    Primero intenta el modelo real de regresión de datacience
+    (src/modelo_real_datacience.py) — es el que de verdad calcula "cuánto
+    debería consumir un hogar con estas características" por país. Si el
+    país no está entre los 35 que soporta (ej. España, Puerto Rico), o algo
+    falla, cae al cálculo por percentil contra nuestro propio dataset
+    sintético — la aproximación que ya existía antes de tener el modelo real.
+    """
+    resultado_real = modelo_real_puente.calcular(d, consumo_kwh)
+    if resultado_real is not None:
+        salida = resultado_real["salida"]
+        return {
+            "score": float(salida["Indice de eficiencia"]),
+            "letra": salida["Perfil de eficiencia"],
+            "interpretacion": _mapear_rango(float(salida["Indice de eficiencia"]), RANGOS_INTERPRETACION),
+            "fuente": "modelo_real_datacience",
+            "ranking": salida.get("Ranking"),
+            "perfil_consumo": salida.get("Perfil de consumo"),
+            "recomendaciones_reales": resultado_real.get("salida_complementaria", {}).get("recomendaciones", []),
+        }
+
+    distribucion = _cargar_distribucion_consumo()
+    if distribucion is None:
+        return {"score": None, "letra": None, "interpretacion": None, "fuente": "sin_datos",
+                "ranking": None, "perfil_consumo": None, "recomendaciones_reales": []}
+
+    from scipy import stats
+    percentil = float(stats.percentileofscore(distribucion, consumo_kwh))
+    score = round((50 - percentil) * 2, 1)
+    score = float(max(-100.0, min(100.0, score)))  # nunca debería salirse, y siempre float nativo (no np.float64, rompe jsonify)
+
+    return {
+        "score": score,
+        "letra": _mapear_rango(score, RANGOS_LETRA),
+        "interpretacion": _mapear_rango(score, RANGOS_INTERPRETACION),
+        "fuente": "percentil_sintetico",
+        "ranking": round(percentil, 1),
+        "perfil_consumo": None,
+        "recomendaciones_reales": [],
+    }
