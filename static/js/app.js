@@ -20,7 +20,10 @@ const COUNTER_ZEROS = {
   refrigerador:     0,
   freezer:          0,
   tv:               0,
-  tvFrecuencia:     0
+  tvFrecuencia:     0,
+  inputLucesExterior:     0,
+  inputLucesInterior:     0,
+  inputCargadoresVampiro: 0
 };
 
 /* Lista de equipos con toggle para construir el desglose */
@@ -140,6 +143,18 @@ function updateProgressBar() {
 }
 
 function showStep(stepNumber) {
+  // Bug real encontrado: Denji llama a window.showStep() directo para saltar
+  // visualmente de página (sincronizarPasoJC en denji.js), pero antes de este
+  // arreglo eso NUNCA actualizaba `currentStep` — la variable que usa el
+  // botón real "Siguiente" para saber en qué paso está. Resultado: Denji
+  // mueve la vista al paso 3, la persona llena los campos ahí, aprieta
+  // "Siguiente", y nextStep() valida un paso viejo (el que currentStep
+  // todavía recordaba) y aterriza en el paso equivocado. Centralizar la
+  // sincronización acá adentro hace que cualquiera que llame a showStep()
+  // —Denji, los clics de la barra de progreso, o el propio wizard— deje
+  // currentStep siempre correcto, sin tener que acordarse de hacerlo en
+  // cada lugar por separado.
+  currentStep = stepNumber;
   wizardSteps.forEach(step => {
     step.classList.toggle('wizard-step--active', parseInt(step.dataset.step) === stepNumber);
   });
@@ -618,6 +633,15 @@ async function mensajeDeError(res) {
 }
 
 document.getElementById('btnSubmit')?.addEventListener('click', async (evento) => {
+  // Bug real encontrado: este botón nunca llamaba a validarPaso() antes de
+  // calcular — va directo a armar el payload y enviarlo. La validación de
+  // horas de TV (0-24) vivía dentro de validarPaso(4), pero como nada la
+  // invocaba acá, era código muerto: nunca se ejecutaba al apretar
+  // "Calcular", solo si alguien llegaba al paso 4 vía un botón "Siguiente"
+  // que ni siquiera existe en este paso (el último no tiene "Siguiente",
+  // tiene "Calcular").
+  if (!validarPaso(4)) return;
+
   updateVoltiMessage('submit');
 
   const boton = evento.currentTarget;

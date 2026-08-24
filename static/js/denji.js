@@ -1269,6 +1269,20 @@
   sincronizarLabelConsumo();
   agregarBotonesOmitirEnHTML();
   actualizarAnimacion();
+
+  // app.js (resetearTodo()) ya llamaba a window.denjiReiniciar() al final —
+  // la llamada estaba puesta, pero la función nunca se había implementado
+  // acá. Sin esto, después de un primer cálculo, Denji cree que todos los
+  // campos ya están respondidos (camposTocados) y se salta las preguntas
+  // en el segundo uso, aunque el formulario visual sí se haya limpiado.
+  window.denjiReiniciar = function(){
+    idx = 0;
+    Object.keys(respuestas).forEach(k => delete respuestas[k]);
+    Object.keys(camposTocados).forEach(k => delete camposTocados[k]);
+    ultimoJCStep = 0;
+    render();
+  };
+
   if(document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', render);
   } else {
