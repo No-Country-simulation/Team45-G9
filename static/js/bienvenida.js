@@ -241,7 +241,7 @@
   // Logo
   var logo = document.createElement('div');
   logo.className = 'bvn-logo-nombre';
-  logo.textContent = '⚡ VólticvS';
+  logo.textContent = '⚡ Denji Energy Advisor';
   overlay.appendChild(logo);
 
   // Avatar

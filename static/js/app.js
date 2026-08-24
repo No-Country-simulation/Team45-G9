@@ -560,6 +560,10 @@ function resetearTodo() {
   currentStep = 1;
   showStep(1);             // Incluye updateProgressBar() + updateVoltiMessage(1)
 
+  // Restaurar el HUD de Denji, oculto al mostrar los resultados
+  const denjiHud = document.getElementById('denji-hud');
+  if (denjiHud) denjiHud.style.display = '';
+
   // 13. Scroll al inicio
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -829,6 +833,13 @@ function renderEscalaEficiencia(letra, score, interpretacion, contenedorId) {
 
 function mostrarResultados(res, payload) {
   if (resultadosSeccion) resultadosSeccion.hidden = false;
+
+  // El HUD de Denji (abajo a la izquierda) tapaba el reporte final — ya
+  // cumplió su función acá (guiar el formulario, leer el resultado en voz),
+  // así que se oculta al mostrar resultados. Vuelve a aparecer con "Nuevo
+  // Cálculo" (resetearTodo), donde sí hace falta de nuevo.
+  const denjiHud = document.getElementById('denji-hud');
+  if (denjiHud) denjiHud.style.display = 'none';
 
   // ── Moneda: priorizar lo que devuelve el backend (ya calculado por tarifa) ──
   const simbolo = res.simbolo_moneda || res.simbolo || window._simboloActivo || '$';

@@ -22,7 +22,7 @@ DENJI_JS = (RAIZ / "static" / "js" / "denji.js").read_text(encoding="utf-8")
 IDS_HTML = set(re.findall(r'id="([^"]+)"', HTML))
 
 # Se crean en tiempo de ejecución desde JavaScript, no viven en la plantilla.
-IDS_DINAMICOS = {"avisoGlobal"}
+IDS_DINAMICOS = {"avisoGlobal", "denji-hud"}
 # Nombre alternativo heredado: el código lo consulta como respaldo del actual.
 IDS_HEREDADOS = {"selectPais"}
 

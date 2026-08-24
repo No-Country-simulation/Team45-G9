@@ -1103,13 +1103,22 @@
   }
 
   function leerResultadosReales(){
-    const kwh = document.getElementById('metricaKwh')?.textContent?.trim();
-    const ahorro = document.getElementById('metricaAhorro')?.textContent?.trim();
+    // Antes esto leía directo el texto visual (#metricaKwh, #metricaAhorro),
+    // que incluye el símbolo "$" — y el sintetizador de voz del navegador lo
+    // pronuncia como "dollars" en inglés, sin importar la moneda real, pegado
+    // sin pausa al código de moneda ("dollaresclp"). Acá se arma el texto
+    // hablado desde los números crudos (window._lastResultado), sin símbolo.
+    const datos = window._lastResultado;
+    const kwhVisual = document.getElementById('metricaKwh')?.textContent?.trim();
+    const ahorroVisual = document.getElementById('metricaAhorro')?.textContent?.trim();
     const items = Array.from(document.querySelectorAll('#listaRecomendaciones li')).map(li => li.textContent.trim());
 
+    const kwhHablado = datos ? `${datos.consumoVal} kWh` : kwhVisual;
+    const ahorroHablado = datos ? `${datos.ahorroAnual} ${datos.moneda}` : ahorroVisual;
+
     let texto = _t('denji_resultado_listo');
-    if(kwh) texto += ' ' + _t('denji_consumo_estimado').replace('{valor}', kwh);
-    if(ahorro) texto += ' ' + _t('denji_ahorro_potencial').replace('{valor}', ahorro);
+    if(kwhHablado) texto += ' ' + _t('denji_consumo_estimado').replace('{valor}', kwhHablado);
+    if(ahorroHablado) texto += ' ' + _t('denji_ahorro_potencial').replace('{valor}', ahorroHablado);
     if(items.length){
       texto += ' ' + _t('denji_mis_recomendaciones').replace('{valor}', items.join('. '));
     }
@@ -1117,8 +1126,8 @@
     statusEl.textContent = 'Denji: ' + _t('denji_listo');
     hablar(texto);
     card.innerHTML = '<p style="margin:0 0 10px">' + _t('denji_resultado_listo') + '</p>' +
-      (kwh ? '<p style="margin:0 0 4px"><strong>Consumo:</strong> ' + kwh + '</p>' : '') +
-      (ahorro ? '<p style="margin:0 0 8px"><strong>Ahorro:</strong> ' + ahorro + '</p>' : '') +
+      (kwhVisual ? '<p style="margin:0 0 4px"><strong>Consumo:</strong> ' + kwhVisual + '</p>' : '') +
+      (ahorroVisual ? '<p style="margin:0 0 8px"><strong>Ahorro:</strong> ' + ahorroVisual + '</p>' : '') +
       (items.length ? '<ul style="margin:0;padding-left:18px">' + items.map(i => '<li>' + i + '</li>').join('') + '</ul>' : '');
   }
 
