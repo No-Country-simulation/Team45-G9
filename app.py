@@ -713,7 +713,7 @@ RESPONDE SOLO con este JSON exacto, sin texto adicional:
 
         # Modelo de visión configurable: antes estaba fijo en el código,
         # ignorando GROQ_MODEL y sin variable propia.
-        llm = groq.obtener_llm(modelo=groq.MODELO_VISION, temperatura=0)
+        llm = groq.obtener_llm(modelo=groq.MODELO_VISION, temperatura=0, json_mode=True)
 
         mensaje = HumanMessage(content=[
             {"type": "text",      "text": prompt_extraccion},
