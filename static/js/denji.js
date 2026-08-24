@@ -1008,7 +1008,7 @@
       const btnSubmit = document.getElementById('btnSubmit');
       const resultadosEl = document.getElementById('resultados');
       if(btnSubmit && resultadosEl){
-        const texto = 'Listo, ya tengo todo. Voy a calcular tu consumo, dame un segundo.';
+        const texto = _t('denji_calculando');
         statusEl.textContent = 'Denji: ' + texto;
         hablar(texto);
         card.innerHTML = '<p style="margin:0 0 10px">' + texto + '</p>';
@@ -1016,7 +1016,7 @@
         esperarYLeerResultados(resultadosEl);
       } else {
         // fallback: si no encontró los elementos reales (ej. probando este script fuera de la página de JC)
-        const texto = 'Te hago el resumen.';
+        const texto = _t('denji_resumen_fallback');
         statusEl.textContent = 'Denji: ' + texto;
         hablar(texto);
         card.innerHTML = '<p style="margin:0 0 10px">' + texto + '</p><pre>' + JSON.stringify(respuestas, null, 2) + '</pre>';
@@ -1034,7 +1034,7 @@
       if(resuelto) return;
       resuelto = true;
       observer.disconnect();
-      const texto = 'El cálculo está tardando más de lo normal. Revisa la pantalla, puede que haya un error.';
+      const texto = _t('denji_tardando');
       statusEl.textContent = 'Denji: ' + texto;
       hablar(texto);
     }, 15000);
@@ -1056,16 +1056,16 @@
     const ahorro = document.getElementById('metricaAhorro')?.textContent?.trim();
     const items = Array.from(document.querySelectorAll('#listaRecomendaciones li')).map(li => li.textContent.trim());
 
-    let texto = 'Listo, aquí está tu resultado.';
-    if(kwh) texto += ' Tu consumo estimado es ' + kwh + '.';
-    if(ahorro) texto += ' Tu ahorro potencial es ' + ahorro + '.';
+    let texto = _t('denji_resultado_listo');
+    if(kwh) texto += ' ' + _t('denji_consumo_estimado').replace('{valor}', kwh);
+    if(ahorro) texto += ' ' + _t('denji_ahorro_potencial').replace('{valor}', ahorro);
     if(items.length){
-      texto += ' Mis recomendaciones: ' + items.join('. ');
+      texto += ' ' + _t('denji_mis_recomendaciones').replace('{valor}', items.join('. '));
     }
 
     statusEl.textContent = 'Denji: ' + _t('denji_listo');
     hablar(texto);
-    card.innerHTML = '<p style="margin:0 0 10px">Listo, aquí está tu resultado:</p>' +
+    card.innerHTML = '<p style="margin:0 0 10px">' + _t('denji_resultado_listo') + '</p>' +
       (kwh ? '<p style="margin:0 0 4px"><strong>Consumo:</strong> ' + kwh + '</p>' : '') +
       (ahorro ? '<p style="margin:0 0 8px"><strong>Ahorro:</strong> ' + ahorro + '</p>' : '') +
       (items.length ? '<ul style="margin:0;padding-left:18px">' + items.map(i => '<li>' + i + '</li>').join('') + '</ul>' : '');
