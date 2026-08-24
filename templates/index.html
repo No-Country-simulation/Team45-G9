@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Denji — Energy Advisor</title>
+  <title>Denji Energy Advisor</title>
   <meta name="description"
     content="Calcula tu consumo eléctrico y descubre cuánto puedes ahorrar con Denji, tu asesor energético inteligente.">
 
@@ -32,9 +32,9 @@
   <header class="header" id="appHeader">
     <div class="header__inner">
       <div class="header__brand">
-        <img src="/static/img/icono_2.png" alt="VólticvS Logo" class="header-logo-img header__logo" id="headerLogo">
+        <img src="/static/img/icono_2.png" alt="Denji Energy Advisor Logo" class="header-logo-img header__logo" id="headerLogo">
         <div class="header__text">
-          <h1 class="header__title">VólticvS</h1>
+          <h1 class="header__title">Denji Energy Advisor</h1>
           <p class="header__tagline" data-i18n="header_tagline">Tu asesor energético inteligente</p>
         </div>
       </div>
@@ -44,18 +44,18 @@
   <!-- ════ MAIN LAYOUT ════ -->
   <main class="main-layout">
 
-    <!-- ── PANEL LATERAL: VOLTI ── -->
+    <!-- ── PANEL LATERAL: DENJI ── -->
     <aside class="volti-panel no-print" id="voltiPanel">
 
       <!-- Nombre y subtítulo del asistente -->
       <div class="volti-name-badge">
-        <span class="volti-name" data-i18n="volti_name">Volti</span>
+        <span class="volti-name" data-i18n="volti_name">Denji</span>
         <span class="volti-tagline" data-i18n="app_tagline">Energy advisor</span>
       </div>
 
       <!-- Marco enmascarador + avatar PNG individual -->
       <div class="volti-frame" id="voltiFrame">
-        <img src="/static/img/volti/impatado.png" alt="Volti — Asesor Energético" class="volti-avatar-img"
+        <img src="/static/img/volti/impatado.png" alt="Denji — Asesor Energético" class="volti-avatar-img"
           id="voltiAvatarImg">
       </div>
 
@@ -63,7 +63,7 @@
       <div class="volti-speech" id="voltiSpeech">
         <div class="volti-bubble" id="voltiBubble">
           <span class="volti-bubble__text" id="voltiBubbleText">
-            <span data-i18n="volti_greeting">¡Hola! Soy <strong>Volti</strong>, tu asesor energético. Te guiaré paso a paso para calcular tu consumo.</span>
+            <span data-i18n="volti_greeting">¡Hola! Soy <strong>Denji</strong>, tu asesor energético. Te guiaré paso a paso para calcular tu consumo.</span>
           </span>
         </div>
         <div class="volti-mood" id="voltiMood">Saludando</div>
@@ -141,7 +141,7 @@
                 <span data-i18n="label_consumption">Consumo eléctrico mensual (kWh)</span>
               </label>
               <input type="number" class="form-input" id="inputConsumo" min="0"
-                data-i18n-placeholder="ph_consumption" placeholder="Ej: 250  —  déjalo vacío para que Volti lo calcule">
+                data-i18n-placeholder="ph_consumption" placeholder="Ej: 250  —  déjalo vacío para que Denji lo calcule">
             </div>
 
             <div class="form-group">
@@ -245,7 +245,7 @@
                   <div class="vivienda-card__title" data-i18n="type_house">Casa</div>
                 </div>
                 <div class="vivienda-card" data-value="Departamento" id="cardDpto">
-                  <i data-lucide="building-2" class="vivienda-card__icon"></i>
+                  <img src="/static/img/departamento.png" alt="Departamento / Piso" class="vivienda-card__img">
                   <div class="vivienda-card__title" data-i18n="type_apartment">Departamento / Piso</div>
                 </div>
                 <div class="vivienda-card" data-value="Motorhome" id="cardRV">
@@ -253,7 +253,7 @@
                   <div class="vivienda-card__title" data-i18n="type_rv">Casilla / Casa Rodante / RV</div>
                 </div>
                 <div class="vivienda-card" data-value="Otro" id="cardOtro">
-                  <i data-lucide="tent" class="vivienda-card__icon"></i>
+                  <img src="/static/img/otro.png" alt="Otro" class="vivienda-card__img">
                   <div class="vivienda-card__title" data-i18n="type_other">Otro</div>
                 </div>
               </div>
@@ -267,7 +267,7 @@
               <input type="text" class="form-input" id="inputInmuebleOtro"
                 placeholder="Ej: un galpón reconvertido en loft">
               <span class="form-hint" id="inmuebleOtroEstado">
-                <span data-i18n="hint_describe">Volti lo interpretará para clasificar tu vivienda.</span>
+                <span data-i18n="hint_describe">Denji lo interpretará para clasificar tu vivienda.</span>
               </span>
             </div>
 
@@ -573,7 +573,7 @@
             </span>
             <div>
               <h2 class="step-card__title" data-i18n="results_title">Análisis de Consumo</h2>
-              <p class="step-card__desc" data-i18n="results_desc">Proyección estimada por Volti para tu hogar</p>
+              <p class="step-card__desc" data-i18n="results_desc">Proyección estimada por Denji para tu hogar</p>
             </div>
           </div>
 
@@ -643,7 +643,7 @@
 
             <h3 style="color:var(--azul-oscuro);margin:1.4rem 0 0.6rem;font-size:0.95rem;display:flex;align-items:center;gap:0.4rem;">
               <img src="/static/img/ampolleta_cfl.png" alt="Recomendaciones" style="width:22px;height:22px;image-rendering:pixelated;">
-              <span data-i18n="recs_title">Recomendaciones de Volti</span>
+              <span data-i18n="recs_title">Recomendaciones de Denji</span>
             </h3>
             <ul class="results-recs" id="listaRecomendaciones"></ul>
 
@@ -671,7 +671,7 @@
         <img src="/static/img/icono_2.png" alt="Denji Logo" class="fpt-logo">
         <div>
           <h1 class="fpt-brand-name" data-i18n="app_name">Denji</h1>
-          <p class="fpt-brand-tagline" data-i18n="report_tagline">Energy advisor · Equipo Volti</p>
+          <p class="fpt-brand-tagline" data-i18n="report_tagline">Energy advisor · Equipo Denji</p>
         </div>
       </div>
       <div class="fpt-folio-box">
@@ -754,14 +754,14 @@
     <!-- ── PIE DE PÁGINA / FIRMA INSTITUCIONAL ── -->
     <div class="fpt-footer">
       <div class="fpt-footer__recs">
-        <h3 class="fpt-footer__recs-title" data-i18n="rpt_recs_title">💡 Recomendaciones de Volti</h3>
+        <h3 class="fpt-footer__recs-title" data-i18n="rpt_recs_title">💡 Recomendaciones de Denji</h3>
         <ul class="fpt-recs-list" id="fptRecs"></ul>
       </div>
       <div class="fpt-footer__firma">
         <img src="/static/img/icono_2.png" alt="Logo" class="fpt-firma-logo">
         <div class="fpt-firma-text">
-          <strong>Denji — Equipo Volti</strong>
-          <p>Denji © 2026 — Equipo Volti</p>
+          <strong>Denji — Equipo Denji</strong>
+          <p>Denji © 2026 — Equipo Denji</p>
           <p class="fpt-disclaimer" data-i18n="rpt_disclaimer">Este reporte es orientativo. Los valores son estimaciones basadas en los datos ingresados por el usuario.</p>
         </div>
       </div>
@@ -770,7 +770,7 @@
   </div><!-- /#factura-print-template -->
 
   <footer class="footer no-print">
-    <p data-i18n="footer_text">Denji © 2026 — Energy advisor · Equipo Volti</p>
+    <p data-i18n="footer_text">Denji © 2026 — Energy advisor · Equipo Denji</p>
   </footer>
 
   <script src="/static/js/app.js"></script>

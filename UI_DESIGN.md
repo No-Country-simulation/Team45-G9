@@ -1,4 +1,4 @@
-# Diseño de interfaz — VólticvS
+# Diseño de interfaz — Denji Energy Advisor
 
 ## Principio
 
@@ -42,7 +42,7 @@ así que el valor por defecto es mensual. Venía al revés: quien escribía 250 
 terminaba con 20,8 kWh sin enterarse.
 
 **Los errores tienen sitio propio.** Un fallo de red o un tiempo agotado muestran un aviso con texto,
-no solo un cambio de gesto en el asistente. Antes, cuando algo fallaba, Volti ponía cara de error y
+no solo un cambio de gesto en el asistente. Antes, cuando algo fallaba, Denji ponía cara de error y
 el usuario no sabía qué había pasado ni qué hacer.
 
 **Estado de carga explícito.** El botón se deshabilita y anuncia que está calculando. Las peticiones

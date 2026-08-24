@@ -1,4 +1,4 @@
-# ⚡ VólticvS — Asesor Energético Inteligente
+# ⚡ Denji Energy Advisor — Asesor Energético Inteligente
 
 Plataforma web para diagnosticar el consumo eléctrico de un hogar, estimar su ahorro potencial y dar
 recomendaciones concretas. Soporta **24 países** de América y España, cada uno con su moneda y tarifa.
@@ -478,4 +478,4 @@ explícitamente si no está disponible, sin tumbar la app.
 
 ---
 
-VólticvS © 2026 — Equipo Volti
+Denji Energy Advisor © 2026 — Equipo Denji

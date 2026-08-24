@@ -13,6 +13,9 @@
  */
 (function () {
   'use strict';
+  function _t(key) {
+    return (window.DenjiI18n ? window.DenjiI18n.t(key) : key);
+  }
 
   // ── Datos de ahorro por país (tarifa_kwh * 50 kWh de ahorro moderado) ──
   // Extraídos de data/consumo_referencia.json. El "50 kWh" es conservador:
@@ -177,6 +180,36 @@
       .bvn-titulo { font-size: 1.3rem; }\
       .bvn-titulo .bvn-monto { font-size: 1.6rem; }\
       .bvn-comenzar { padding: 12px 36px; font-size: 1rem; }\
+      #bvn-lang { max-width: 92vw; }\
+      .bvn-lang-texto { font-size: 0.78rem; }\
+      .bvn-lang-fila { flex-direction: column; width: 100%; }\
+      .bvn-lang-btn { width: 100%; padding: 10px 16px; font-size: 0.82rem; }\
+    }\
+    #bvn-lang {\
+      margin-top: 18px; display: none; flex-direction: column;\
+      align-items: center; gap: 10px; max-width: 340px; width: 100%;\
+      box-sizing: border-box;\
+    }\
+    .bvn-lang-texto {\
+      font-size: 0.85rem; text-align: center; opacity: 0.9; margin: 0;\
+    }\
+    .bvn-lang-fila {\
+      display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;\
+      width: 100%;\
+    }\
+    .bvn-lang-btn {\
+      background: rgba(255,255,255,0.12); color: #F8F9F4;\
+      border: 1px solid rgba(255,255,255,0.3); border-radius: 999px;\
+      padding: 8px 16px; font-size: 0.8rem; cursor: pointer;\
+      transition: background 0.2s ease;\
+      box-sizing: border-box;\
+    }\
+    .bvn-lang-btn:hover {\
+      background: rgba(255,255,255,0.22);\
+    }\
+    .bvn-lang-btn--primario {\
+      background: #F0E442; color: #1E3A5F; font-weight: 700;\
+      border-color: #F0E442;\
     }\
   ';
 
@@ -221,25 +254,30 @@
   // Titulo (se actualiza si la geo detecta el pais)
   var titulo = document.createElement('h2');
   titulo.className = 'bvn-titulo';
-  titulo.innerHTML = '¿Te gustaría ahorrar en tu factura de luz?';
+  titulo.innerHTML = _t('bvn_titulo');
   overlay.appendChild(titulo);
 
   // Subtitulo
   var subtitulo = document.createElement('p');
   subtitulo.className = 'bvn-subtitulo';
-  subtitulo.textContent = 'Revisa la eficiencia energética de tu hogar';
+  subtitulo.textContent = _t('bvn_subtitulo');
   overlay.appendChild(subtitulo);
 
   // Firma Denji
   var firma = document.createElement('p');
   firma.className = 'bvn-firma';
-  firma.textContent = 'Yo, Denji, te asesoro.';
+  firma.textContent = _t('bvn_firma');
   overlay.appendChild(firma);
+  // Selector de idioma (se muestra solo si la geolocalizacion detecta el
+  // pais y el usuario todavia no eligio idioma en una visita anterior)
+  var langBox = document.createElement('div');
+  langBox.id = 'bvn-lang';
+  overlay.appendChild(langBox);
 
   // Boton
   var boton = document.createElement('button');
   boton.className = 'bvn-comenzar';
-  boton.textContent = 'Comenzar';
+  boton.textContent = _t('bvn_comenzar');
   boton.setAttribute('aria-label', 'Comenzar el análisis energético');
   overlay.appendChild(boton);
 
@@ -259,14 +297,86 @@
   // Intenta geolocalizar para personalizar el monto. Si falla por
   // cualquier razon (sin HTTPS, sin permiso, sin Nominatim), el titulo
   // generico ya funciona perfectamente.
+  var ultimoCodigoPaisDetectado = null;
   function actualizarMonto(codigoPais) {
     var info = AHORRO_POR_PAIS[codigoPais];
     if (!info) return;
+    ultimoCodigoPaisDetectado = codigoPais;
     titulo.innerHTML =
-      '¿Te gustaría ahorrar hasta' +
-      '<span class="bvn-monto">' + info.simbolo + info.monto + ' al mes?</span>';
+      _t('bvn_ahorrar_hasta') +
+      '<span class="bvn-monto">' + info.simbolo + info.monto + ' ' + _t('bvn_al_mes') + '</span>';
   }
 
+  // ── Selector de idioma sugerido por pais ──────────────────────────────
+  var IDIOMAS = { es: { label: 'Español' }, en: { label: 'English' }, pt: { label: 'Português' } };
+  function idiomaSugeridoPara(codigoPais) {
+    if (codigoPais === 'BR') return 'pt';
+    if (codigoPais === 'US') return 'en';
+    return 'es';
+  }
+  function fijarIdioma(lang) {
+    if (window.DenjiI18n) window.DenjiI18n.setLang(lang);
+    try { localStorage.setItem('denji_lang_prompted', '1'); } catch (e) {}
+    // Sin recargar: aunque esta pantalla es la primera que ve la persona,
+    // recargar reinicia TODO (incluida la detección de ubicación en curso).
+    // titulo/subtitulo/firma/boton se escribieron con textContent directo,
+    // no via data-i18n, así que se repintan a mano acá.
+    titulo.innerHTML = _t('bvn_titulo');
+    subtitulo.textContent = _t('bvn_subtitulo');
+    firma.textContent = _t('bvn_firma');
+    boton.textContent = _t('bvn_comenzar');
+    if (ultimoCodigoPaisDetectado) actualizarMonto(ultimoCodigoPaisDetectado);
+    langBox.style.display = 'none';
+  }
+  function mostrarOpcionesIdioma() {
+    langBox.innerHTML = '';
+    var fila = document.createElement('div');
+    fila.className = 'bvn-lang-fila';
+    ['es', 'en', 'pt'].forEach(function (lang) {
+      var btn = document.createElement('button');
+      btn.className = 'bvn-lang-btn';
+      btn.textContent = IDIOMAS[lang].label;
+      btn.addEventListener('click', function () { fijarIdioma(lang); });
+      fila.appendChild(btn);
+    });
+    langBox.appendChild(fila);
+    langBox.style.display = 'flex';
+  }
+  function sugerirIdioma(codigoPais, nombrePais) {
+    try { if (localStorage.getItem('denji_lang_prompted')) return; } catch (e) { return; }
+    var sugerido = idiomaSugeridoPara(codigoPais);
+    langBox.innerHTML = '';
+    var texto = document.createElement('p');
+    texto.className = 'bvn-lang-texto';
+    texto.textContent = 'Detectamos que estás en ' + (nombrePais || codigoPais) + '. ¿Usamos ' + IDIOMAS[sugerido].label + '?';
+    langBox.appendChild(texto);
+    var fila = document.createElement('div');
+    fila.className = 'bvn-lang-fila';
+    var btnSi = document.createElement('button');
+    btnSi.className = 'bvn-lang-btn bvn-lang-btn--primario';
+    btnSi.textContent = 'Sí, usar ' + IDIOMAS[sugerido].label;
+    btnSi.addEventListener('click', function () { fijarIdioma(sugerido); });
+    var btnOtro = document.createElement('button');
+    btnOtro.className = 'bvn-lang-btn';
+    btnOtro.textContent = 'Elegir otro idioma';
+    btnOtro.addEventListener('click', function () { mostrarOpcionesIdioma(); });
+    fila.appendChild(btnSi);
+    fila.appendChild(btnOtro);
+    langBox.appendChild(fila);
+    langBox.style.display = 'flex';
+  }
+  // ── Fallback: sugerir idioma por el idioma del navegador, sin esperar
+  // el permiso de geolocalizacion (que puede tardar, fallar o ser rechazado).
+  // Si despues la geolocalizacion SI responde con un pais, sugerirIdioma()
+  // vuelve a evaluar y puede refinar la sugerencia (ej. sobreescribe con el
+  // idioma del pais real si difiere del idioma del navegador).
+  (function () {
+    try {
+      var navLang = (navigator.language || 'es').toLowerCase();
+      var codigoAprox = navLang.startsWith('pt') ? 'BR' : navLang.startsWith('en') ? 'US' : null;
+      if (codigoAprox) sugerirIdioma(codigoAprox, null);
+    } catch (e) {}
+  })();
   if ('geolocation' in navigator) {
     try {
       navigator.geolocation.getCurrentPosition(
@@ -275,8 +385,9 @@
           fetch(url)
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (data) {
-              if (data && data.codigo_pais) {
-                actualizarMonto(data.codigo_pais);
+              if (data && data.pais_codigo) {
+                actualizarMonto(data.pais_codigo);
+                sugerirIdioma(data.pais_codigo, data.pais_nombre);
               }
             })
             .catch(function () { /* silencioso: el titulo generico queda */ });

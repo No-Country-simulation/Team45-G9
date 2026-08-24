@@ -43,7 +43,7 @@ const voltiBubbleText= document.getElementById('voltiBubbleText');
 const voltiMood      = document.getElementById('voltiMood');
 const resultadosSeccion = document.getElementById('resultados');
 
-// ── 2. ESTADOS DE VOLTI ──────────────────────────────────────
+// ── 2. ESTADOS DEL PANEL LATERAL (antes "Volti", ahora Denji) ──
 // Nota: saludando.png no existe en el proyecto; usamos impatado.png para el inicio.
 const VOLTI_ASSETS = {
   1:       '/static/img/volti/impatado.png',
@@ -56,7 +56,12 @@ const VOLTI_ASSETS = {
 };
 
 const VOLTI_MESSAGES = {
-  1:       '¡Hola! Soy <strong>Volti</strong>, tu asesor energético. Indícame tu ubicación y tarifa para comenzar.',
+  // NOTA: estos 7 textos NO pasan por el sistema de idiomas (_t()) — se
+  // escriben directo al DOM en updateVoltiMessage() más abajo. Sea cual sea
+  // el idioma elegido, esta burbuja siempre sale en español. Es un gap
+  // real, independiente del cambio de nombre — señalado para decidir si se
+  // conecta al i18n en otra vuelta.
+  1:       '¡Hola! Soy <strong>Denji</strong>, tu asesor energético. Indícame tu ubicación y tarifa para comenzar.',
   2:       '¡Excelente! Ahora cuéntame sobre tu tipo de vivienda y la cantidad de habitantes.',
   3:       'Selecciona los artefactos de mayor consumo que utilizas en tu hogar.',
   4:       'Indica la frecuencia con la que usas tus electrodomésticos.',
@@ -71,8 +76,21 @@ const VOLTI_MOODS = {
 };
 
 // ── 3. AVATAR ────────────────────────────────────────────────
+function _t(key) {
+  return (window.DenjiI18n ? window.DenjiI18n.t(key) : key);
+}
+
+let _ultimoKeyVolti = 1;
+
 function updateVoltiMessage(key) {
-  const message = VOLTI_MESSAGES[key] || VOLTI_MESSAGES[1];
+  _ultimoKeyVolti = key;
+  const claveTraduccion = 'volti_msg_' + key;
+  const traducido = _t(claveTraduccion);
+  // Si window.DenjiI18n no existe o la clave no está en el diccionario,
+  // t() devuelve la clave misma tal cual ("volti_msg_1") en vez de un
+  // valor vacío — hay que detectar ese caso explícito para caer bien al
+  // mensaje en español, no mostrar la clave literal en pantalla.
+  const message = (traducido !== claveTraduccion) ? traducido : (VOLTI_MESSAGES[key] || VOLTI_MESSAGES[1]);
   const imgSrc  = VOLTI_ASSETS[key]   || VOLTI_ASSETS[1];
   const mood    = VOLTI_MOODS[key]    || VOLTI_MOODS[1];
 
@@ -98,6 +116,13 @@ function updateVoltiMessage(key) {
   }
   if (voltiMood) voltiMood.textContent = mood;
 }
+
+// Si cambia el idioma a mitad de camino (vía el panel de accesibilidad), la
+// burbuja se refresca en el sitio con el mismo estado que ya mostraba —
+// nada se pierde, nada se reinicia.
+window.addEventListener('denji-lang-change', function () {
+  updateVoltiMessage(_ultimoKeyVolti);
+});
 
 // ── 4. WIZARD Y PROGRESS BAR ─────────────────────────────────
 function updateProgressBar() {
@@ -147,7 +172,7 @@ function showError(el, mensaje) {
  * Aviso de error a nivel de página, para fallos que no pertenecen a ningún
  * campo del formulario (la API no responde, se agotó el tiempo, 429…).
  * Antes estos fallos solo cambiaban la cara del asistente: el usuario veía a
- * Volti poner gesto de error sin saber qué había pasado ni qué hacer.
+ * Denji poner gesto de error sin saber qué había pasado ni qué hacer.
  */
 function mostrarErrorGlobal(mensaje) {
   let aviso = document.getElementById('avisoGlobal');
@@ -615,7 +640,8 @@ document.getElementById('btnSubmit')?.addEventListener('click', async (evento) =
     tv:                    parseInt(v('tv')?.value) || 0,
     tv_frecuencia:         horasDiariasTv * 7,
     tipo_inmueble:         tipoInmuebleSeleccionado,
-    rangos_horario_uso:    Array.from(document.querySelectorAll('.rango-horario:checked')).map(el => el.value)
+    rangos_horario_uso:    Array.from(document.querySelectorAll('.rango-horario:checked')).map(el => el.value),
+    idioma:                (window.DenjiI18n && window.DenjiI18n.lang) || 'es'
   };
 
   // Tarifa leída de la boleta del usuario, si la subió. Es más exacta que la

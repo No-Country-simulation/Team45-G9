@@ -4,7 +4,7 @@
  * Funcionalidades:
  *   · Tamaño de letra (5 niveles)
  *   · Modos de color (deuteranopia, tritanopia, alto contraste)
- *   · Narración por voz TTS — activa/desactiva la voz de Volti/Denji
+ *   · Narración por voz TTS — activa/desactiva la voz de Denji
  *   · Indicador de estado del micrófono (refleja lo que hace denji.js)
  *
  * Autocontenido: inyecta sus propios estilos y markup al cargar.
@@ -81,7 +81,11 @@
       position: fixed;
       bottom: 1.5rem;
       right: 1.5rem;
-      z-index: 9990;
+      /* Por encima de la pantalla de bienvenida (z-index 100000 en
+         bienvenida.js) — tiene que quedar accesible desde ahí, no tapado,
+         para que se pueda cambiar idioma o configurar accesibilidad antes
+         de "Comenzar". */
+      z-index: 100001;
       width: 3rem;
       height: 3rem;
       border-radius: 50%;
@@ -106,7 +110,7 @@
       position: fixed;
       bottom: 5.5rem;
       right: 1.5rem;
-      z-index: 9989;
+      z-index: 100001;
       width: 290px;
       background: var(--white, #fff);
       border: 2px solid var(--azul, #2F80ED);
@@ -381,7 +385,7 @@
       <div class="acces-seccion">
         <div class="acces-seccion-titulo" data-i18n="acces_assistant">${_t('acces_assistant', 'Asistente')}</div>
         <div class="acces-toggle-fila">
-          <span class="acces-toggle-label" data-i18n="acces_hide_msgs">${_t('acces_hide_msgs', '💬 Mensajes de Volti')}</span>
+          <span class="acces-toggle-label" data-i18n="acces_hide_msgs">${_t('acces_hide_msgs', '💬 Mensajes de Denji')}</span>
           <button class="acces-toggle"
                   id="acces-msgs-btn"
                   role="switch"
@@ -396,7 +400,7 @@
         <div class="acces-voz">
           ${tieneTTS ? `
           <div class="acces-toggle-fila">
-            <span class="acces-toggle-label" data-i18n="acces_tts">${_t('acces_tts', '🔊 Narración de Volti')}</span>
+            <span class="acces-toggle-label" data-i18n="acces_tts">${_t('acces_tts', '🔊 Narración de Denji')}</span>
             <button class="acces-toggle"
                     id="acces-tts-btn"
                     role="switch"
@@ -467,6 +471,13 @@
     panel.querySelectorAll('input[name="acces-lang"]').forEach(radio => {
       radio.addEventListener('change', () => {
         if (window.DenjiI18n) {
+          // Sin recargar: la persona puede estar a mitad del formulario y no
+          // se puede perder lo que ya llevaba lleno. setLang() actualiza el
+          // texto en el sitio (apply()) y avisa a los demás scripts via el
+          // evento denji-lang-change. Limitación conocida y aceptada: la
+          // tarjeta que Denji esté mostrando en ESE instante puede tardar
+          // hasta el siguiente paso en traducirse — nunca se pierde ningún
+          // dato, solo un detalle cosmético menor.
           window.DenjiI18n.setLang(radio.value);
         }
       });
@@ -515,7 +526,7 @@
     // ── Toggle mensajes del asistente ──────────────────────────────────────────
     const msgsBtn = panel.querySelector('#acces-msgs-btn');
     function aplicarVisibilidadMsgs() {
-      // Oculta/muestra la burbuja de Volti y el HUD de Denji
+      // Oculta/muestra la burbuja del panel lateral y el HUD del asistente animado (ambos "Denji")
       const voltiSpeech = document.getElementById('voltiSpeech');
       const denjiCard   = document.getElementById('denji-card');
       const denjiHud    = document.getElementById('denji-hud');

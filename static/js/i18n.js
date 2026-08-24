@@ -27,22 +27,22 @@
     app_name:       { es: 'Denji', en: 'Denji', pt: 'Denji' },
     app_tagline:    { es: 'Asesor energético', en: 'Energy advisor', pt: 'Consultor energético' },
     header_tagline: { es: 'Tu asesor energético inteligente', en: 'Your smart energy advisor', pt: 'Seu consultor energético inteligente' },
-    volti_name:     { es: 'Volti', en: 'Volti', pt: 'Volti' },
-    footer_text:    { es: 'Denji © 2026 — Asesor energético · Equipo Volti', en: 'Denji © 2026 — Energy advisor · Team Volti', pt: 'Denji © 2026 — Consultor energético · Equipe Volti' },
+    volti_name:     { es: 'Denji', en: 'Denji', pt: 'Denji' },
+    footer_text:    { es: 'Denji © 2026 — Asesor energético · Equipo Denji', en: 'Denji © 2026 — Energy advisor · Team Denji', pt: 'Denji © 2026 — Consultor energético · Equipe Denji' },
 
     // ─── BIENVENIDA ───
     bvn_title_generic: { es: '¿Te gustaría ahorrar en tu factura de luz?', en: 'Would you like to save on your electricity bill?', pt: 'Gostaria de economizar na sua conta de luz?' },
     bvn_subtitle:      { es: 'Revisa la eficiencia energética de tu hogar', en: 'Check your home\'s energy efficiency', pt: 'Verifique a eficiência energética da sua casa' },
-    bvn_firma:         { es: 'Yo, Volti, te asesoro.', en: 'I, Volti, will guide you.', pt: 'Eu, Volti, te assessoro.' },
+    bvn_firma:         { es: 'Yo, Denji, te asesoro.', en: 'I, Denji, will guide you.', pt: 'Eu, Denji, te assessoro.' },
     bvn_start:         { es: 'Comenzar', en: 'Start', pt: 'Começar' },
     bvn_save_prefix:   { es: '¿Te gustaría ahorrar hasta', en: 'Would you like to save up to', pt: 'Gostaria de economizar até' },
     bvn_save_suffix:   { es: ' al mes?', en: ' per month?', pt: ' por mês?' },
 
-    // ─── VOLTI SIDEBAR ───
+    // ─── PANEL LATERAL (Denji) ───
     volti_greeting: {
-      es: '¡Hola! Soy <strong>Volti</strong>, tu asesor energético. Te guiaré paso a paso para calcular tu consumo.',
-      en: 'Hi! I\'m <strong>Volti</strong>, your energy advisor. I\'ll guide you step by step to calculate your consumption.',
-      pt: 'Olá! Sou o <strong>Volti</strong>, seu consultor energético. Vou te guiar passo a passo para calcular seu consumo.'
+      es: '¡Hola! Soy <strong>Denji</strong>, tu asesor energético. Te guiaré paso a paso para calcular tu consumo.',
+      en: 'Hi! I\'m <strong>Denji</strong>, your energy advisor. I\'ll guide you step by step to calculate your consumption.',
+      pt: 'Olá! Sou o <strong>Denji</strong>, seu consultor energético. Vou te guiar passo a passo para calcular seu consumo.'
     },
 
     // ─── PROGRESS STEPS ───
@@ -61,7 +61,7 @@
     ph_province:      { es: 'Ej: Santiago, Buenos Aires, CDMX…', en: 'E.g.: New York, California, London…', pt: 'Ex.: São Paulo, Lisboa, Rio…' },
     hint_province:    { es: 'Ayuda a estimar variaciones de clima local.', en: 'Helps estimate local climate variations.', pt: 'Ajuda a estimar variações climáticas locais.' },
     label_consumption:{ es: 'Consumo eléctrico mensual (kWh)', en: 'Monthly electricity consumption (kWh)', pt: 'Consumo elétrico mensal (kWh)' },
-    ph_consumption:   { es: 'Ej: 250  —  déjalo vacío para que Volti lo calcule', en: 'E.g.: 250  —  leave empty for Volti to estimate', pt: 'Ex.: 250  —  deixe vazio para Volti calcular' },
+    ph_consumption:   { es: 'Ej: 250  —  déjalo vacío para que Denji lo calcule', en: 'E.g.: 250  —  leave empty for Denji to estimate', pt: 'Ex.: 250  —  deixe vazio para Denji calcular' },
     label_monthly:    { es: 'El consumo es mensual', en: 'Consumption is monthly', pt: 'O consumo é mensal' },
     label_schedule:   { es: '¿En qué horarios usas mayoritariamente la electricidad?', en: 'When do you primarily use electricity?', pt: 'Em quais horários você mais usa eletricidade?' },
     hint_schedule:    { es: 'Marca uno o varios — nos ayuda a saber si tu consumo cae en horario pico.', en: 'Check one or more — helps us know if your usage falls in peak hours.', pt: 'Marque um ou mais — nos ajuda a saber se seu consumo é em horário de pico.' },
@@ -85,7 +85,7 @@
     type_rv:        { es: 'Casilla / Casa Rodante / RV', en: 'Trailer / RV / Mobile Home', pt: 'Trailer / Casa Móvel' },
     type_other:     { es: 'Otro', en: 'Other', pt: 'Outro' },
     label_describe: { es: 'Descríbelo en tus palabras', en: 'Describe it in your own words', pt: 'Descreva com suas palavras' },
-    hint_describe:  { es: 'Volti lo interpretará para clasificar tu vivienda.', en: 'Volti will interpret it to classify your home.', pt: 'Volti interpretará para classificar sua moradia.' },
+    hint_describe:  { es: 'Denji lo interpretará para clasificar tu vivienda.', en: 'Denji will interpret it to classify your home.', pt: 'Denji interpretará para classificar sua moradia.' },
 
     // ─── STEP 3: EQUIPAMIENTO ───
     s3_title: { es: 'Equipamiento Principal', en: 'Main Equipment', pt: 'Equipamento Principal' },
@@ -126,13 +126,13 @@
 
     // ─── RESULTS ───
     results_title:   { es: 'Análisis de Consumo', en: 'Consumption Analysis', pt: 'Análise de Consumo' },
-    results_desc:    { es: 'Proyección estimada por Volti para tu hogar', en: 'Estimated projection by Volti for your home', pt: 'Projeção estimada por Volti para sua casa' },
+    results_desc:    { es: 'Proyección estimada por Denji para tu hogar', en: 'Estimated projection by Denji for your home', pt: 'Projeção estimada por Denji para sua casa' },
     metric_consumption: { es: 'Consumo Mensual', en: 'Monthly Consumption', pt: 'Consumo Mensal' },
     metric_savings:  { es: 'Ahorro Estimado a 1 año', en: 'Estimated Savings per Year', pt: 'Economia Estimada em 1 ano' },
     metric_action:   { es: 'Acción Principal', en: 'Main Action', pt: 'Ação Principal' },
     metric_cost:     { es: 'Costo Estimado', en: 'Estimated Cost', pt: 'Custo Estimado' },
     metric_potential:{ es: 'Ahorro Potencial', en: 'Potential Savings', pt: 'Economia Potencial' },
-    recs_title:      { es: 'Recomendaciones de Volti', en: 'Volti\'s Recommendations', pt: 'Recomendações do Volti' },
+    recs_title:      { es: 'Recomendaciones de Denji', en: 'Denji\'s Recommendations', pt: 'Recomendações do Denji' },
     chart_title:     { es: 'Consumo por categoría', en: 'Consumption by category', pt: 'Consumo por categoria' },
     efficiency_title: { es: 'Etiquetado de eficiencia energética', en: 'Energy efficiency label', pt: 'Etiquetagem de eficiência energética' },
     btn_new_calc:    { es: 'Nuevo Cálculo', en: 'New Calculation', pt: 'Novo Cálculo' },
@@ -140,11 +140,11 @@
 
     // ─── REPORT (FACTURA) ───
     report_title:   { es: 'REPORTE ENERGÉTICO', en: 'ENERGY REPORT', pt: 'RELATÓRIO ENERGÉTICO' },
-    report_tagline: { es: 'Asesor energético · Equipo Volti', en: 'Energy advisor · Team Volti', pt: 'Consultor energético · Equipe Volti' },
+    report_tagline: { es: 'Asesor energético · Equipo Denji', en: 'Energy advisor · Team Denji', pt: 'Consultor energético · Equipe Denji' },
     rpt_s1:         { es: '1 · Datos del Inmueble', en: '1 · Property Data', pt: '1 · Dados do Imóvel' },
     rpt_s2:         { es: '2 · Desglose de Consumo & Equipamiento', en: '2 · Consumption & Equipment Breakdown', pt: '2 · Detalhamento de Consumo & Equipamento' },
     rpt_s3:         { es: '3 · Diagnóstico Energético', en: '3 · Energy Diagnosis', pt: '3 · Diagnóstico Energético' },
-    rpt_recs_title: { es: '💡 Recomendaciones de Volti', en: '💡 Volti\'s Recommendations', pt: '💡 Recomendações do Volti' },
+    rpt_recs_title: { es: '💡 Recomendaciones de Denji', en: '💡 Denji\'s Recommendations', pt: '💡 Recomendações do Denji' },
     rpt_disclaimer: { es: 'Este reporte es orientativo. Los valores son estimaciones basadas en los datos ingresados por el usuario.', en: 'This report is for guidance only. Values are estimates based on user-provided data.', pt: 'Este relatório é orientativo. Os valores são estimativas baseadas nos dados informados pelo usuário.' },
 
     // ─── ACCESSIBILITY PANEL ───
@@ -152,9 +152,9 @@
     acces_font:       { es: 'Tamaño de letra', en: 'Font size', pt: 'Tamanho da fonte' },
     acces_color:      { es: 'Modo de color', en: 'Color mode', pt: 'Modo de cor' },
     acces_assistant:   { es: 'Asistente', en: 'Assistant', pt: 'Assistente' },
-    acces_hide_msgs:   { es: '💬 Mensajes de Volti', en: '💬 Volti messages', pt: '💬 Mensagens do Volti' },
+    acces_hide_msgs:   { es: '💬 Mensajes de Denji', en: '💬 Denji messages', pt: '💬 Mensagens do Denji' },
     acces_voice:      { es: 'Voz', en: 'Voice', pt: 'Voz' },
-    acces_tts:        { es: '🔊 Narración de Volti', en: '🔊 Volti narration', pt: '🔊 Narração do Volti' },
+    acces_tts:        { es: '🔊 Narración de Denji', en: '🔊 Denji narration', pt: '🔊 Narração do Denji' },
     acces_mic_available: { es: '🎤 Micrófono disponible — úsalo desde el asistente', en: '🎤 Microphone available — use it from the assistant', pt: '🎤 Microfone disponível — use-o no assistente' },
     acces_mic_unsupported: { es: '🎤 Tu navegador no soporta reconocimiento de voz', en: '🎤 Your browser doesn\'t support speech recognition', pt: '🎤 Seu navegador não suporta reconhecimento de voz' },
     acces_lang:       { es: 'Idioma', en: 'Language', pt: 'Idioma' },
@@ -174,13 +174,13 @@
 
     // ─── DENJI.JS ASSISTANT DIALOGUE ───
     dj_consent: {
-      es: '¿Quieres que el asistente Volti te acompañe hablando y moviéndose por la pantalla mientras completas el formulario, o prefieres hacerlo tú mismo, sin voz ni animaciones?',
-      en: 'Would you like the assistant Volti to guide you with voice and animations while you fill out the form, or would you prefer to do it yourself, without voice or animations?',
-      pt: 'Gostaria que o assistente Volti te acompanhe falando e se movendo pela tela enquanto preenche o formulário, ou prefere fazer sozinho, sem voz nem animações?'
+      es: '¿Quieres que el asistente Denji te acompañe hablando y moviéndose por la pantalla mientras completas el formulario, o prefieres hacerlo tú mismo, sin voz ni animaciones?',
+      en: 'Would you like the assistant Denji to guide you with voice and animations while you fill out the form, or would you prefer to do it yourself, without voice or animations?',
+      pt: 'Gostaria que o assistente Denji te acompanhe falando e se movendo pela tela enquanto preenche o formulário, ou prefere fazer sozinho, sem voz nem animações?'
     },
     dj_yes_guide:     { es: 'Sí, quiero que me guíe', en: 'Yes, guide me', pt: 'Sim, quero que me guie' },
     dj_no_solo:       { es: 'No, prefiero el formulario solo', en: 'No, I prefer the form alone', pt: 'Não, prefiro o formulário sozinho' },
-    dj_hello:         { es: '¡Hola! Soy Volti. Detecté que tu sistema tiene ', en: 'Hi! I\'m Volti. I detected that your system has ', pt: 'Olá! Sou Volti. Detectei que seu sistema tem ' },
+    dj_hello:         { es: '¡Hola! Soy Denji. Detecté que tu sistema tiene ', en: 'Hi! I\'m Denji. I detected that your system has ', pt: 'Olá! Sou Denji. Detectei que seu sistema tem ' },
     dj_keep_config:   { es: 'Sí, mantenerla', en: 'Yes, keep it', pt: 'Sim, manter' },
     dj_default_config:{ es: 'No, usar valores por defecto', en: 'No, use defaults', pt: 'Não, usar padrões' },
     dj_confirm:       { es: 'Confirmar', en: 'Confirm', pt: 'Confirmar' },
@@ -189,7 +189,7 @@
     dj_no:            { es: 'No', en: 'No', pt: 'Não' },
     dj_correct:       { es: 'Sí, es correcto', en: 'Yes, that\'s correct', pt: 'Sim, está correto' },
     dj_fix:           { es: 'No, corregir', en: 'No, fix it', pt: 'Não, corrigir' },
-    dj_activate:      { es: 'Activar asistente Volti', en: 'Activate assistant Volti', pt: 'Ativar assistente Volti' },
+    dj_activate:      { es: 'Activar asistente Denji', en: 'Activate assistant Denji', pt: 'Ativar assistente Denji' },
     dj_calculating:   { es: 'Listo, ya tengo todo. Voy a calcular tu consumo, dame un segundo.', en: 'All set! I\'m going to calculate your consumption, one moment.', pt: 'Pronto, já tenho tudo. Vou calcular seu consumo, um momento.' },
     dj_results_ready: { es: 'Listo, aquí está tu resultado.', en: 'Done! Here are your results.', pt: 'Pronto, aqui estão seus resultados.' },
     dj_detecting:     { es: 'Detectando tu ubicación…', en: 'Detecting your location…', pt: 'Detectando sua localização…' },
@@ -242,7 +242,75 @@
     voice_no_mic:    { es: 'No encontré un micrófono conectado.', en: 'No microphone found.', pt: 'Nenhum microfone encontrado.' },
 
     // ─── MISC / SHARED ───
-    saludando: { es: 'Saludando', en: 'Greeting', pt: 'Cumprimentando' }
+    saludando: { es: 'Saludando', en: 'Greeting', pt: 'Cumprimentando' },
+    // ─── DENJI: textos de interfaz ───
+    denji_iniciando:        { es: 'Iniciando…', en: 'Starting…', pt: 'Iniciando…' },
+    denji_mic_https:        { es: 'El micrófono necesita que entres por localhost o por https, no por la IP de red.', en: 'The microphone needs you to access via localhost or https, not the network IP.', pt: 'O microfone precisa que você acesse via localhost ou https, não pelo IP de rede.' },
+    denji_escucha_cancelada:{ es: 'escucha cancelada, usa los botones si prefieres', en: 'listening cancelled, use the buttons if you prefer', pt: 'escuta cancelada, use os botões se preferir' },
+    denji_escuchando:       { es: '🎤 Escuchando… (toca para cancelar)', en: '🎤 Listening… (tap to cancel)', pt: '🎤 Ouvindo… (toque para cancelar)' },
+    denji_no_responder:     { es: 'No quiero responder', en: "I don't want to answer", pt: 'Não quero responder' },
+    denji_confirmar_omitir: { es: '¿Estás seguro de que quieres enviar sin responder esta pregunta? Quedará como que no la respondiste.', en: 'Are you sure you want to submit without answering this question? It will be marked as unanswered.', pt: 'Tem certeza de que quer enviar sem responder esta pergunta? Ficará marcada como não respondida.' },
+    denji_responderla:      { es: 'No, quiero responderla', en: 'No, I want to answer it', pt: 'Não, quero respondê-la' },
+    denji_omitirla:         { es: 'Sí, omitirla', en: 'Yes, skip it', pt: 'Sim, pular' },
+    denji_consentimiento:   { es: '¿Quieres que el asistente Denji te acompañe hablando y moviéndose por la pantalla mientras completas el formulario, o prefieres hacerlo tú mismo, sin voz ni animaciones?', en: 'Would you like the Denji assistant to guide you with voice and animations while you fill out the form, or would you rather do it yourself, without voice or animations?', pt: 'Quer que o assistente Denji te acompanhe falando e se movendo pela tela enquanto preenche o formulário, ou prefere fazer sozinho, sem voz ou animações?' },
+    denji_guiame:           { es: 'Sí, quiero que me guíe', en: 'Yes, I want to be guided', pt: 'Sim, quero ser guiado' },
+    denji_solo:             { es: 'No, prefiero el formulario solo', en: 'No, I prefer the form alone', pt: 'Não, prefiro o formulário sozinho' },
+    denji_accesibilidad_saludo: { es: '¡Hola! Soy Denji. Detecté que tu sistema tiene {resumen}. Voy a usar esta configuración para que la experiencia sea más cómoda. ¿Quieres mantenerla así?', en: "Hi! I'm Denji. I detected your system has {resumen}. I'll use this setting to make the experience more comfortable. Do you want to keep it this way?", pt: 'Oi! Sou o Denji. Detectei que seu sistema tem {resumen}. Vou usar essa configuração para deixar a experiência mais confortável. Quer manter assim?' },
+    denji_mov_reducido:     { es: 'movimiento reducido', en: 'reduced motion', pt: 'movimento reduzido' },
+    denji_mov_normal:       { es: 'movimiento normal', en: 'normal motion', pt: 'movimento normal' },
+    denji_modo_oscuro:      { es: 'modo oscuro', en: 'dark mode', pt: 'modo escuro' },
+    denji_modo_claro:       { es: 'modo claro', en: 'light mode', pt: 'modo claro' },
+    denji_mantenerla:       { es: 'Sí, mantenerla', en: 'Yes, keep it', pt: 'Sim, manter' },
+    denji_valores_defecto:  { es: 'No, usar valores por defecto', en: 'No, use default values', pt: 'Não, usar valores padrão' },
+    denji_no_es_numero:     { es: 'entendí "{transcript}", que no es un número; usa los botones', en: 'I understood "{transcript}", which is not a number; use the buttons', pt: 'entendi "{transcript}", que não é um número; use os botões' },
+    denji_si:               { es: 'Sí', en: 'Yes', pt: 'Sim' },
+    denji_no:               { es: 'No', en: 'No', pt: 'Não' },
+    denji_no_es_si_no:      { es: 'entendí "{transcript}"; di sí o no, o usa los botones', en: 'I understood "{transcript}"; say yes or no, or use the buttons', pt: 'entendi "{transcript}"; diga sim ou não, ou use os botões' },
+    denji_listo:            { es: 'listo, revisa tus recomendaciones', en: 'ready, check your recommendations', pt: 'pronto, veja suas recomendações' },
+    denji_detectando_ubicacion: { es: 'Detectando tu ubicación…', en: 'Detecting your location…', pt: 'Detectando sua localização…' },
+    denji_es_correcto:      { es: 'Sí, es correcto', en: 'Yes, that is correct', pt: 'Sim, está correto' },
+    denji_corregir:         { es: 'No, corregir', en: 'No, correct it', pt: 'Não, corrigir' },
+    denji_en_espera:        { es: 'en espera, sin interactuar', en: 'waiting, not interacting', pt: 'em espera, sem interagir' },
+    denji_activar:          { es: 'Activar asistente Denji', en: 'Activate Denji assistant', pt: 'Ativar assistente Denji' },
+    // ─── FORM: dormitorios/ventanas/adultos/menores ───
+    label_bedrooms:  { es: 'Dormitorios', en: 'Bedrooms', pt: 'Quartos' },
+    label_windows:   { es: 'Ventanas', en: 'Windows', pt: 'Janelas' },
+    label_adults:    { es: 'Adultos', en: 'Adults', pt: 'Adultos' },
+    label_children:  { es: 'Menores', en: 'Children', pt: 'Crianças' },
+    // ─── VOLTI_MESSAGES (mensajes por paso del wizard) ───
+    volti_msg_1:      { es: '¡Hola! Soy <strong>Denji</strong>, tu asesor energético. Indícame tu ubicación y tarifa para comenzar.', en: "Hi! I'm <strong>Denji</strong>, your energy advisor. Tell me your location and rate to get started.", pt: 'Olá! Sou o <strong>Denji</strong>, seu consultor energético. Me diga sua localização e tarifa para começar.' },
+    volti_msg_2:      { es: '¡Excelente! Ahora cuéntame sobre tu tipo de vivienda y la cantidad de habitantes.', en: 'Great! Now tell me about your home type and number of occupants.', pt: 'Ótimo! Agora me conte sobre seu tipo de moradia e quantidade de moradores.' },
+    volti_msg_3:      { es: 'Selecciona los artefactos de mayor consumo que utilizas en tu hogar.', en: 'Select the highest-consumption appliances you use at home.', pt: 'Selecione os aparelhos de maior consumo que você usa em casa.' },
+    volti_msg_4:      { es: 'Indica la frecuencia con la que usas tus electrodomésticos.', en: 'Tell us how often you use your appliances.', pt: 'Indique a frequência com que usa seus eletrodomésticos.' },
+    volti_msg_submit: { es: '⚡ Calculando tu consumo estimado... ¡Dame un momento!', en: '⚡ Calculating your estimated consumption... Give me a moment!', pt: '⚡ Calculando seu consumo estimado... Um momento!' },
+    volti_msg_results:{ es: '¡Aquí están tus resultados! Revisa las recomendaciones para ahorrar más.', en: 'Here are your results! Check the recommendations to save more.', pt: 'Aqui estão seus resultados! Veja as recomendações para economizar mais.' },
+    volti_msg_error:  { es: 'Oops, parece que faltan algunos datos. Por favor, revisa la información.', en: 'Oops, looks like some data is missing. Please check the information.', pt: 'Ops, parece que faltam alguns dados. Por favor, revise as informações.' },
+    // ─── VOLTI_MOODS (estados de animo mostrados junto al avatar) ───
+    volti_mood_1:       { es: 'Saludando', en: 'Greeting', pt: 'Cumprimentando' },
+    volti_mood_2:       { es: 'Analizando', en: 'Analyzing', pt: 'Analisando' },
+    volti_mood_3:       { es: 'Atento', en: 'Attentive', pt: 'Atento' },
+    volti_mood_4:       { es: 'Entusiasmado', en: 'Excited', pt: 'Animado' },
+    volti_mood_submit:  { es: 'Calculando', en: 'Calculating', pt: 'Calculando' },
+    volti_mood_results: { es: 'Celebrando', en: 'Celebrating', pt: 'Celebrando' },
+    volti_mood_error:   { es: 'Preocupado', en: 'Worried', pt: 'Preocupado' },
+    // ─── BIENVENIDA (splash screen inicial) ───
+    bvn_titulo:    { es: '¿Te gustaría ahorrar en tu factura de luz?', en: 'Would you like to save on your electricity bill?', pt: 'Gostaria de economizar na sua conta de luz?' },
+    bvn_subtitulo: { es: 'Revisa la eficiencia energética de tu hogar', en: "Check your home's energy efficiency", pt: 'Verifique a eficiência energética da sua casa' },
+    bvn_comenzar:  { es: 'Comenzar', en: 'Get started', pt: 'Começar' },
+    bvn_ahorrar_hasta: { es: '¿Te gustaría ahorrar hasta', en: 'Would you like to save up to', pt: 'Gostaria de economizar até' },
+    bvn_al_mes:    { es: 'al mes?', en: 'per month?', pt: 'por mês?' },
+    title_warnings: { es: 'Advertencias del modelo', en: 'Model warnings', pt: 'Avisos do modelo' },
+    // ─── FACTURA IMPRIMIBLE (fpt) ───
+    rpt_categoria: { es: 'Categoría Energética', en: 'Energy Category', pt: 'Categoria Energética' },
+    rpt_consumo:   { es: 'Consumo Mensual Estimado', en: 'Estimated Monthly Consumption', pt: 'Consumo Mensal Estimado' },
+    rpt_costo:     { es: 'Costo Estimado', en: 'Estimated Cost', pt: 'Custo Estimado' },
+    rpt_ahorro:    { es: 'Ahorro Potencial / Mes', en: 'Potential Savings / Month', pt: 'Economia Potencial / Mês' },
+    rpt_footer:    { es: 'Denji © 2026 — Equipo Denji', en: 'Denji © 2026 — Team Denji', pt: 'Denji © 2026 — Equipe Denji' },
+    denji_solo_form:   { es: 'Puedes llenar el formulario tú mismo, sin el asistente. Si cambias de opinión:', en: 'You can fill out the form yourself, without the assistant. If you change your mind:', pt: 'Você pode preencher o formulário sozinho, sem o assistente. Se mudar de ideia:' },
+    denji_ubi_pais:    { es: '¿En qué país te encuentras?', en: 'What country are you in?', pt: 'Em que país você está?' },
+    denji_ubi_estado:  { es: '¿En qué estado o provincia?', en: 'What state or province?', pt: 'Em que estado ou província?' },
+    denji_ubi_comuna:  { es: '¿En qué comuna o ciudad?', en: 'What city or municipality?', pt: 'Em que cidade ou município?' },
+    denji_continuar:   { es: 'Continuar', en: 'Continue', pt: 'Continuar' }
   };
 
   // ── Idioma actual ─────────────────────────────────────────────────────
