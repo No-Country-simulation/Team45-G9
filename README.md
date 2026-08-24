@@ -1,21 +1,25 @@
 # ⚡ Denji Energy Advisor — Asesor Energético Inteligente
 
 Plataforma web para diagnosticar el consumo eléctrico de un hogar, estimar su ahorro potencial y dar
-recomendaciones concretas. Soporta **24 países** de América y España, cada uno con su moneda y tarifa.
+recomendaciones concretas. Soporta **24 países** de América y España, cada uno con su moneda y
+tarifa, y funciona en **español, inglés y portugués**.
 
 > **Los números son deterministas.** El cálculo lo hace [`src/calculos.py`](src/calculos.py) con
 > física básica —potencia × tiempo, calor específico del agua— y el modelo de lenguaje **solo redacta
-> la narrativa y lee las boletas**. Ningún importe sale de un LLM. Esta separación es deliberada:
-> evita que el sistema alucine cifras de ahorro.
+> la narrativa libre y lee las boletas**. Ningún importe, ninguna recomendación, sale de un LLM. Esta
+> separación es deliberada: evita que el sistema alucine cifras de ahorro, y hace que la app funcione
+> completa —incluidos los 3 idiomas— aunque Groq no esté configurado.
 
 **Contexto.** Responde a las bases del hackathon *EnergiAI – Inteligencia para el Consumo
 Energético*, versionadas en [`docs/EnergiAI.pdf`](docs/EnergiAI.pdf).
 
-> ✅ **Cumple los entregables obligatorios.** Modelo supervisado entrenado
+> ✅ **Cumple los entregables obligatorios.** Dos modelos de clasificación conviven: el propio
 > ([`notebooks/energiai.ipynb`](notebooks/energiai.ipynb), Regresión Logística elegida por evidencia
-> sobre Random Forest — ver el propio notebook para la comparación) y persistencia en Object Storage
-> de OCI ([`src/oci_storage.py`](src/oci_storage.py), con degradación explícita si no hay
-> credenciales). El estado punto por punto, y lo poco que queda de pulido, están en
+> sobre Random Forest) y el real de datacience
+> ([`src/modelo_real_datacience.py`](src/modelo_real_datacience.py), copia mecánica del script
+> original, validada corriéndolo de verdad y comparando la salida), más persistencia en Object
+> Storage de OCI ([`src/oci_storage.py`](src/oci_storage.py), con degradación explícita si no hay
+> credenciales). El estado punto por punto está en
 > [`docs/PLAN-HACKATHON.md`](docs/PLAN-HACKATHON.md). Ejemplos reales de uso —tres casos
 > contrastantes, corridos contra el servidor, no escritos a mano— en
 > [`docs/EJEMPLOS.md`](docs/EJEMPLOS.md).
@@ -27,8 +31,8 @@ Energético*, versionadas en [`docs/EnergiAI.pdf`](docs/EnergiAI.pdf).
 ### Con Docker (recomendado)
 
 ```bash
-git clone https://github.com/alejolanda/desafioTeam49.git
-cd desafioTeam49
+git clone https://github.com/No-Country-simulation/Team45-G9.git
+cd Team45-G9
 cp .env.example .env      # y edita las claves, ver más abajo
 docker compose up --build
 ```
@@ -62,20 +66,23 @@ Todas las variables viven en `.env`, que **nunca** se versiona ni entra en la im
 
 | Variable | Qué hace | ¿Obligatoria? |
 |---|---|---|
-| `GROQ_API_KEY` | Narrativa y lectura de boletas | No, pero sin ella se degrada |
+| `GROQ_API_KEY` | Narrativa libre y lectura de boletas | No, pero sin ella se degrada |
 | `NOMINATIM_CONTACTO` | Correo de contacto del equipo | Para detectar la ubicación |
 | `GROQ_TIMEOUT_S` | Segundos antes de abandonar una llamada al modelo | No (10) |
+| `OCI_BUCKET_NAMESPACE` / `OCI_BUCKET_NAME` | Descargar el modelo entrenado desde Object Storage | No — sin ellas usa el modelo que ya tenga en local |
 | `RATELIMIT_STORAGE_URI` | Redis, si se usa más de un worker | No (memoria) |
 | `ENABLE_API_DOCS` | Sirve el contrato en `/openapi.yaml` | No (apagado) |
 | `HOST_PORT` | Puerto del host, separado del interno | No (5000) |
 | `INSTALAR_DOCS` | Mete Swagger UI en la imagen al construirla | No (0) |
 | `FLASK_DEBUG` | **Dejar en 0.** El depurador de Werkzeug permite ejecución remota de código | No (0) |
 
-**La aplicación funciona sin ninguna clave.** Sin `GROQ_API_KEY` el diagnóstico se calcula igual —es
-determinista— y la narrativa cae a un texto de respaldo, marcado como tal en el campo
-`narrativa_fuente`. Sin `NOMINATIM_CONTACTO` no se detecta la ubicación y se pide a mano; es
-deliberado: su política de uso exige identificar la aplicación, y es preferible perder la función
-antes que hacer peticiones sin identificar contra un servicio comunitario gratuito.
+**La aplicación funciona sin ninguna clave.** Sin `GROQ_API_KEY` el diagnóstico, las recomendaciones y
+la interfaz se calculan y traducen igual —son deterministas y por plantilla, no dependen de un LLM—;
+solo la narrativa libre cae a un texto de respaldo, marcado como tal en el campo `narrativa_fuente`.
+Sin `NOMINATIM_CONTACTO` no se detecta la ubicación y se pide a mano; es deliberado: su política de
+uso exige identificar la aplicación, y es preferible perder la función antes que hacer peticiones sin
+identificar contra un servicio comunitario gratuito. Sin las variables de OCI, el modelo entrenado se
+sirve desde el archivo local (`modelos/clasificador_energetico.joblib`), sin intentar conectarse.
 
 ---
 
@@ -84,14 +91,21 @@ antes que hacer peticiones sin identificar contra un servicio comunitario gratui
 ```mermaid
 flowchart TB
     subgraph navegador["Navegador"]
+        Bienvenida["bienvenida.js<br/>landing, elige idioma"]
+        I18n["i18n.js<br/>diccionario ES/EN/PT<br/>reactivo, sin recargar"]
         UI["index.html + app.js<br/>asistente de 4 pasos"]
         Denji["denji.js<br/>guía por voz y rellena el formulario"]
+        Acces["accesibilidad.js<br/>tamaño de letra, contraste,<br/>daltonismo, TTS"]
     end
 
     subgraph flask["Flask · app.py"]
         Calculos["src/calculos.py<br/>MOTOR DETERMINISTA<br/>kWh, costo y ahorro salen de aquí"]
-        Modelo["src/modelo.py<br/>MODELO ENTRENADO<br/>categoría + probabilidad real"]
-        LLM["src/llm.py<br/>acceso a Groq<br/>timeout, validación, degradación"]
+        Modelo["src/modelo.py<br/>MODELO PROPIO (Fase A/B)<br/>categoría + probabilidad"]
+        ModeloReal["src/modelo_real_datacience.py<br/>MODELO REAL de datacience<br/>score -100..+100, letra G..A++"]
+        Puente["src/modelo_real_puente.py<br/>traduce el payload al formato<br/>del modelo real"]
+        GeoCod["src/geo_codigos.py<br/>provincia/estado → código numérico"]
+        Recs["RECOMENDACIONES_I18N<br/>plantillas ES/EN/PT, sin IA"]
+        LLM["src/llm.py<br/>acceso a Groq<br/>solo narrativa libre y boletas"]
         Geo["src/geo.py<br/>intermediario ante OpenStreetMap"]
         Almacen["src/almacen.py<br/>historial en SQLite"]
     end
@@ -99,20 +113,32 @@ flowchart TB
     Datos[("data/consumo_referencia.json<br/>fuente única: potencias, tarifas<br/>y suposiciones de uso")]
     OCI[("OCI Object Storage<br/>modelo entrenado serializado<br/>opcional, con degradación")]
 
-    UI -->|JSON| flask
+    Bienvenida -->|"idioma elegido"| I18n
+    I18n -.->|"evento denji-lang-change<br/>sin recargar, sin perder datos"| Denji
+    UI -->|JSON + idioma| flask
     Denji -->|rellena| UI
+    Acces -.-> I18n
     Calculos --> Datos
     Geo --> Datos
     Modelo -.->|"si no hay local,<br/>lo descarga una vez"| OCI
-    LLM -.->|"solo redacta y lee boletas<br/>ningún importe"| Calculos
+    Puente --> GeoCod
+    Puente --> ModeloReal
+    flask -->|"país soportado por<br/>el modelo real"| Puente
+    flask -->|"país no soportado<br/>(ej. España)"| Modelo
+    flask --> Recs
+    LLM -.->|"solo narrativa libre y boletas<br/>ningún importe, ninguna recomendación"| Calculos
     flask --> Almacen
 ```
 
-El modelo de lenguaje **nunca calcula**: recibe cifras ya cerradas por `calculos.py` y solo las
-redacta. La categoría y su probabilidad, en cambio, sí salen de un modelo entrenado —
-`src/modelo.py` (Fase A/B del plan de hackathon), no de umbrales fijos ni de un LLM. Si el archivo
-del modelo no está disponible ni en local ni en OCI, se degrada a umbrales y lo declara en
-`fuente_clasificacion`.
+El modelo de lenguaje **nunca calcula**: recibe cifras ya cerradas por `calculos.py` y solo redacta
+la narrativa libre. Hay **dos modelos de clasificación**, no uno: el propio (Fase A/B, entrenado con
+un dataset sintético) da `categoria`/`probabilidad`; el real de datacience (validado idéntico contra
+el script original que entregaron, corriéndolo de verdad) da `score_eficiencia`, `letra_eficiencia` y
+`recomendaciones_modelo_real`, y es el que manda en el texto de "acción principal" cuando está
+disponible —para 35 países, con modelo propio para USA/Chile y "modelo prestado" (Canadá⇒USA,
+resto⇒Chile) para los demás—. Si el país no está entre esos 35 (España, Puerto Rico), se degrada al
+modelo propio. Ninguna recomendación depende de un LLM para traducirse: viven como plantillas en
+`RECOMENDACIONES_I18N`, así que funcionan en los 3 idiomas aunque Groq no esté configurado.
 
 ### Infraestructura
 
@@ -183,8 +209,10 @@ cifra de relleno.
 ### De dónde sale el ahorro
 
 De la suma real del consumo evitable de cada artefacto: lo que gasta un equipo en modo de espera
-frente a lo que gastaría desconectado. Se calcula siempre, incluso cuando declaras el consumo de tu
-boleta, porque sin desglose no hay forma de saber dónde está el ahorro.
+frente a lo que gastaría desconectado — incluidos los cargadores que la persona declara como
+enchufados sin usar (`consumo_mensual_standby()`, la misma función para todos los casos). Se calcula
+siempre, incluso cuando declaras el consumo de tu boleta, porque sin desglose no hay forma de saber
+dónde está el ahorro.
 
 > **Limitación conocida.** Hoy solo se monetiza el consumo fantasma. Las recomendaciones textuales
 > sugieren ahorros mayores —bajar el aire acondicionado a 24 °C, lavar en frío, cambiar a LED— y
@@ -214,6 +242,63 @@ modelo supervisado real, no de umbrales fijos ni de un LLM:
   notebook, o antes de que Fase E lo descargue de OCI), `src/modelo.py` cae a los umbrales fijos
   anteriores (250 / 450 kWh) y lo declara en `fuente_clasificacion: "umbrales"` — nunca se inventa
   una probabilidad sin un modelo real detrás.
+
+### El modelo real de datacience
+
+Aparte del modelo propio de arriba, el equipo de datacience entregó su **propio modelo de
+regresión**, entrenado con encuestas oficiales reales (RECS de EE.UU., encuesta de hogares de Chile
+2018 — no un dataset sintético). Da tres cosas que el modelo propio no da:
+
+- **`score_eficiencia`** — escala continua de -100 a +100, basada en comparar el consumo real contra
+  el consumo *esperado* para un hogar con esas características (no contra el consumo de otros
+  hogares al azar).
+- **`letra_eficiencia`** — G a A++ (11 bandas reales, incluidas C+/C- — el modelo las distingue,
+  aunque no se mencionaran en la especificación original).
+- **`recomendaciones_modelo_real`** — texto generado por su propio motor de reglas, en dólares (así
+  vino del script original; no se muestra en pantalla hoy, solo va en la respuesta de la API).
+
+**Cómo se integró, para que quede trazable:** [`src/modelo_real_datacience.py`](src/modelo_real_datacience.py)
+es una copia **mecánica** del script que entregaron —ninguna línea de cálculo se retipeó a mano—,
+envuelta en una función en vez de leer/escribir archivos. La prueba de que el envoltorio no cambió
+nada corre el script original de verdad (guardado intacto en
+[`docs/referencia/`](docs/referencia/)) y compara su salida contra la función, para varios países y
+perfiles — ver [`tests/test_modelo_real_datacience.py`](tests/test_modelo_real_datacience.py).
+
+Cubre 35 países: modelo propio para **USA** y **Chile** (con clima a nivel de estado/provincia, vía
+[`src/geo_codigos.py`](src/geo_codigos.py) — traduce lo que la persona escribió, "california" o la
+región completa que entrega la geolocalización, al código numérico exacto que el modelo necesita, sin
+que el usuario vea ningún código nunca) y "modelo prestado" para el resto (Canadá toma prestados los
+coeficientes de USA; todos los demás, los de Chile). Si el país no está entre los 35 (España, Puerto
+Rico), [`src/modelo_real_puente.py`](src/modelo_real_puente.py) devuelve `None` y
+[`src/modelo.py`](src/modelo.py) cae al percentil contra el dataset propio — la respuesta declara
+cuál se usó en `fuente_score_eficiencia`.
+
+### Consumo vampiro / fantasma
+
+Cuántos cargadores (celular, tablet, notebook) declara la persona como enchufados sin usar, y cuánto
+cuesta eso al mes — con el ahorro real de desenchufarlos, no un porcentaje inventado. Usa
+`consumo_mensual_standby()`, la misma función de `calculos.py` que ya calculaba el consumo fantasma
+de cada electrodoméstico, solo que nadie la había conectado a una pregunta real del formulario hasta
+ahora.
+
+### Sistema de idiomas
+
+Español, inglés y portugués, elegibles desde la pantalla de bienvenida o el panel de accesibilidad —
+en cualquier momento, sin perder lo que ya se llevaba lleno en el formulario ni recargar la página
+(`window.DenjiI18n.setLang()` actualiza el texto en el sitio y avisa a los demás scripts con un
+evento; nada depende de un `location.reload()`).
+
+Dos mecanismos de traducción, deliberadamente distintos:
+
+- **La interfaz y las recomendaciones** (`static/js/i18n.js`, `RECOMENDACIONES_I18N` en `app.py`) son
+  plantillas fijas en los 3 idiomas — funcionan sin Groq, sin red, y nunca fallan ni tardan, porque es
+  texto que ya se conoce de antemano.
+- **La narrativa libre** (la que redacta el LLM caso a caso) sí necesita Groq configurado para
+  traducirse; si no está disponible, esa parte específica queda en español y el resto de la app sigue
+  funcionando igual en el idioma elegido.
+
+La voz de Denji (síntesis del navegador) también respeta el idioma elegido — selecciona la voz
+`es-419`/`en-US`/`pt-BR` según corresponda, no siempre español.
 
 ### Integración con OCI (Fase E)
 
@@ -319,15 +404,18 @@ verificados lo dicen explícitamente:
 ## Estructura
 
 ```
-desafioTeam49/
-├── app.py                      Servidor Flask y endpoints
+Team45-G9/
+├── app.py                      Servidor Flask, endpoints, RECOMENDACIONES_I18N
 ├── src/
-│   ├── calculos.py             Motor determinista
-│   ├── modelo.py                Carga del modelo entrenado (Fase A/B)
-│   ├── oci_storage.py           Sincronización con OCI Object Storage (Fase E)
-│   ├── almacen.py               Historial de análisis, SQLite (Fase D)
-│   ├── llm.py                  Acceso a Groq
-│   └── geo.py                  Geocodificación inversa
+│   ├── calculos.py              Motor determinista
+│   ├── modelo.py                 Carga del modelo propio (Fase A/B) + score de eficiencia
+│   ├── modelo_real_datacience.py Modelo real de datacience, copia mecánica del script original
+│   ├── modelo_real_puente.py     Traduce el payload al formato que pide el modelo real
+│   ├── geo_codigos.py            Provincia/estado (texto libre) → código numérico
+│   ├── oci_storage.py            Sincronización con OCI Object Storage (Fase E)
+│   ├── almacen.py                Historial de análisis, SQLite (Fase D)
+│   ├── llm.py                   Acceso a Groq
+│   └── geo.py                   Geocodificación inversa
 ├── scripts/generar_dataset.py  Genera data/consumo_hogares.csv (semilla fija)
 ├── notebooks/energiai.ipynb    EDA, entrenamiento, evaluación, serialización
 ├── modelos/
@@ -340,19 +428,25 @@ desafioTeam49/
 ├── templates/index.html
 ├── static/
 │   ├── css/style.css
-│   ├── js/app.js               Lógica del asistente
-│   ├── js/denji.js             Asistente guiado
+│   ├── js/app.js                Lógica del asistente
+│   ├── js/denji.js              Asistente guiado
+│   ├── js/i18n.js               Diccionario ES/EN/PT, reactivo
+│   ├── js/bienvenida.js         Pantalla de bienvenida — elige idioma, geolocaliza
+│   ├── js/accesibilidad.js      Panel de accesibilidad (letra, contraste, daltonismo, TTS)
 │   ├── img/
 │   └── vendor/                 Lucide y la tipografía, servidos localmente
 ├── tests/                      Batería de pruebas
 ├── docs/
-│   ├── EnergiAI.pdf            Bases del hackathon (la fuente)
-│   ├── EJEMPLOS.md              Tres casos de uso reales, contra el servidor (Fase F)
-│   ├── openapi.yaml            Contrato de la API
+│   ├── EnergiAI.pdf             Bases del hackathon (la fuente)
+│   ├── EJEMPLOS.md               Tres casos de uso reales, contra el servidor (Fase F)
+│   ├── openapi.yaml             Contrato de la API
 │   ├── reglas_recomendaciones.md  Tabla de datacience detrás de las recomendaciones
-│   ├── PLAN.md                 Plan de la auditoría de código
-│   ├── PLAN-HACKATHON.md       Qué falta para cumplir las bases
-│   └── DECISIONES.md           Decisiones técnicas y su porqué
+│   ├── PLAN.md                  Plan de la auditoría de código
+│   ├── PLAN-HACKATHON.md        Qué falta para cumplir las bases
+│   ├── DECISIONES.md            Decisiones técnicas y su porqué
+│   └── referencia/              Fuentes originales intactas (nunca se importan en producción)
+│       ├── Modelo_original_datacience.py
+│       └── notebooks/           Metodología: encuestas RECS (USA) y hogares Chile 2018
 ├── Dockerfile                  Multi-stage, sin privilegios
 ├── docker-compose.yml
 ├── requirements.txt            Dependencias directas
@@ -461,9 +555,12 @@ git diff --cached                    # los que ya están preparados
 | Capa | Stack |
 |---|---|
 | **Backend** | Python 3.12, Flask 3, gunicorn, flask-limiter |
-| **Modelo de eficiencia** | scikit-learn (Regresión Logística, 97,3% exactitud) + joblib + pandas — entrenado en `notebooks/energiai.ipynb`, servido por `src/modelo.py` |
-| **Narrativa y lectura de boletas** | LangChain + Groq (Llama 3.3 70B; visión con Llama 4 Scout) — nunca calcula, solo redacta |
-| **Asistente guiado** | Denji (`static/js/denji.js`) — voz, mic, y sincronización bidireccional con el formulario |
+| **Modelo propio (Fase A/B)** | scikit-learn (Regresión Logística, 97,3% exactitud) + joblib + pandas — entrenado en `notebooks/energiai.ipynb`, servido por `src/modelo.py` |
+| **Modelo real de datacience** | Regresión estadística sobre encuestas oficiales (RECS EE.UU., hogares Chile 2018) — copia mecánica y validada del script original (`src/modelo_real_datacience.py`), cubre 35 países |
+| **Narrativa y lectura de boletas** | LangChain + Groq (Llama 3.3 70B; visión con Llama 4 Scout) — nunca calcula, solo redacta texto libre |
+| **Traducción de interfaz y recomendaciones** | Plantillas propias ES/EN/PT (`static/js/i18n.js`, `RECOMENDACIONES_I18N`) — sin IA, sin red, nunca fallan |
+| **Asistente guiado** | Denji (`static/js/denji.js`) — voz en 3 idiomas, mic, sincronización bidireccional con el formulario |
+| **Accesibilidad** | `static/js/accesibilidad.js` — tamaño de letra, alto contraste, modos para daltonismo, TTS |
 | **Geocodificación** | Nominatim/OpenStreetMap, vía `src/geo.py` (identificado, con caché y límite de tasa) |
 | **Persistencia** | SQLite (`src/almacen.py`) — historial de análisis, consultable por id |
 | **Almacenamiento del modelo** | OCI Object Storage (`src/oci_storage.py`) — Instance Principal, con degradación a modelo local |
@@ -472,8 +569,9 @@ git diff --cached                    # los que ya están preparados
 | **Infra** | Docker multi-stage, GitHub Actions (lint + tests + build de imagen) |
 
 La interfaz **no hace ninguna petición a servidores externos** salvo las que requieren un servicio
-específico (geocodificación, el LLM, o descargar el modelo desde OCI la primera vez) — los iconos y
-la tipografía se sirven desde el propio proyecto, y cada una de esas integraciones se degrada
+específico (geocodificación, el LLM para narrativa libre, o descargar el modelo desde OCI la primera
+vez) — los iconos y la tipografía se sirven desde el propio proyecto, la interfaz y las
+recomendaciones se traducen sin salir del servidor, y cada integración externa se degrada
 explícitamente si no está disponible, sin tumbar la app.
 
 ---
