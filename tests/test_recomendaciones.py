@@ -2,6 +2,12 @@
 Tests de `_recomendaciones_contextuales`: los umbrales proporcionales
 portados desde el motor de G9 (docs/reglas_recomendaciones.md), no la
 presencia/ausencia plana de un artefacto.
+
+`_recomendaciones_contextuales` devuelve (clave, params) desde que las
+recomendaciones se traducen por plantilla en vez de depender de Groq — estos
+tests las renderizan a español con `_renderizar_recomendaciones` antes de
+verificar el texto, así siguen probando lo mismo que antes: qué mensaje
+final ve la persona.
 """
 import app as aplicacion
 
@@ -11,17 +17,23 @@ def _perfil(desglose: dict) -> dict:
     return {"desglose": desglose, "items": list(desglose.keys()), "ahorro_dinero_mes": 0}
 
 
+def _recs_es(*args, **kwargs) -> list:
+    """_recomendaciones_contextuales(...) + renderizado a español, en un solo paso."""
+    claves = aplicacion._recomendaciones_contextuales(*args, **kwargs)
+    return aplicacion._renderizar_recomendaciones(claves, "es")
+
+
 class TestUmbralVentanas:
     def test_ventanas_sobre_3x_dormitorios_dispara_la_recomendacion(self):
         d = {"dormitorios": 2, "ventanas": 7, "agua_caliente_electrica": 0, "secarropas_electrico": 0,
              "lavado_frecuencia": 0, "refrigerador": 1, "freezer": 0, "tv_frecuencia": 0, "horno_electrico": 0}
-        recs = aplicacion._recomendaciones_contextuales("Moderado", d, _perfil({}))
+        recs = _recs_es("Moderado", d, _perfil({}))
         assert any("ventanas" in r.lower() for r in recs)
 
     def test_ventanas_bajo_3x_dormitorios_no_dispara(self):
         d = {"dormitorios": 3, "ventanas": 6, "agua_caliente_electrica": 0, "secarropas_electrico": 0,
              "lavado_frecuencia": 0, "refrigerador": 1, "freezer": 0, "tv_frecuencia": 0, "horno_electrico": 0}
-        recs = aplicacion._recomendaciones_contextuales("Moderado", d, _perfil({}))
+        recs = _recs_es("Moderado", d, _perfil({}))
         assert not any("ventanas" in r.lower() for r in recs)
 
     def test_monoambiente_no_revienta_por_division_cero(self):
@@ -37,26 +49,26 @@ class TestUmbralCalefaccionYSecarropas:
         d = {"dormitorios": 1, "ventanas": 1, "agua_caliente_electrica": 0, "secarropas_electrico": 0,
              "lavado_frecuencia": 0, "refrigerador": 1, "freezer": 0, "tv_frecuencia": 0, "horno_electrico": 0}
         perfil = _perfil({"Calefactor eléctrico": 50, "Refrigerador": 50})  # 50% del total
-        recs = aplicacion._recomendaciones_contextuales("Moderado", d, perfil)
+        recs = _recs_es("Moderado", d, perfil)
         assert any("calefacción" in r.lower() for r in recs)
 
     def test_calefaccion_con_mas_de_2_dormitorios_agrega_recomendacion_extra(self):
         d = {"dormitorios": 3, "ventanas": 1, "agua_caliente_electrica": 0, "secarropas_electrico": 0,
              "lavado_frecuencia": 0, "refrigerador": 1, "freezer": 0, "tv_frecuencia": 0, "horno_electrico": 0}
         perfil = _perfil({"Calefactor eléctrico": 50, "Refrigerador": 50})
-        recs = aplicacion._recomendaciones_contextuales("Moderado", d, perfil)
+        recs = _recs_es("Moderado", d, perfil)
         assert any("cerrados" in r.lower() for r in recs)
 
     def test_secarropas_con_2_5_o_mas_lavados_semana_dispara_recomendacion(self):
         d = {"dormitorios": 1, "ventanas": 1, "agua_caliente_electrica": 0, "secarropas_electrico": 1,
              "lavado_frecuencia": 3, "refrigerador": 1, "freezer": 0, "tv_frecuencia": 0, "horno_electrico": 0}
-        recs = aplicacion._recomendaciones_contextuales("Moderado", d, _perfil({"Secadora de ropa": 20}))
+        recs = _recs_es("Moderado", d, _perfil({"Secadora de ropa": 20}))
         assert any("secarropas" in r.lower() for r in recs)
 
     def test_secarropas_con_menos_de_2_5_lavados_no_dispara(self):
         d = {"dormitorios": 1, "ventanas": 1, "agua_caliente_electrica": 0, "secarropas_electrico": 1,
              "lavado_frecuencia": 1, "refrigerador": 1, "freezer": 0, "tv_frecuencia": 0, "horno_electrico": 0}
-        recs = aplicacion._recomendaciones_contextuales("Moderado", d, _perfil({"Secadora de ropa": 20}))
+        recs = _recs_es("Moderado", d, _perfil({"Secadora de ropa": 20}))
         assert not any("secarropas eléctrico representa" in r.lower() for r in recs)
 
 
@@ -64,7 +76,7 @@ class TestSiempreIncluye:
     def test_incluye_mensaje_de_categoria_al_inicio(self):
         d = {"dormitorios": 1, "ventanas": 1, "agua_caliente_electrica": 0, "secarropas_electrico": 0,
              "lavado_frecuencia": 0, "refrigerador": 1, "freezer": 0, "tv_frecuencia": 0, "horno_electrico": 0}
-        recs = aplicacion._recomendaciones_contextuales("Eficiente", d, _perfil({}))
+        recs = _recs_es("Eficiente", d, _perfil({}))
         assert "eficiente" in recs[0].lower()
 
     def test_maximo_8_recomendaciones(self):
@@ -76,3 +88,38 @@ class TestSiempreIncluye:
         })
         recs = aplicacion._recomendaciones_contextuales("Ineficiente", d, perfil)
         assert len(recs) <= 8
+
+
+class TestRenderizadoMultiIdioma:
+    """Confirma que las 3 traducciones existen y son distintas entre sí —
+    no solo que la clave 'existe', sino que el contenido real cambió."""
+
+    def _claves_de_ejemplo(self):
+        d = {"dormitorios": 1, "ventanas": 1, "agua_caliente_electrica": 0, "secarropas_electrico": 0,
+             "lavado_frecuencia": 0, "refrigerador": 1, "freezer": 0, "tv_frecuencia": 0, "horno_electrico": 0}
+        return aplicacion._recomendaciones_contextuales("Eficiente", d, _perfil({}))
+
+    def test_las_3_traducciones_existen_y_son_distintas(self):
+        claves = self._claves_de_ejemplo()
+        es = aplicacion._renderizar_recomendaciones(claves, "es")
+        en = aplicacion._renderizar_recomendaciones(claves, "en")
+        pt = aplicacion._renderizar_recomendaciones(claves, "pt")
+        assert es[0] != en[0]
+        assert es[0] != pt[0]
+        assert en[0] != pt[0]
+
+    def test_idioma_no_soportado_cae_a_espanol(self):
+        claves = self._claves_de_ejemplo()
+        es = aplicacion._renderizar_recomendaciones(claves, "es")
+        fr = aplicacion._renderizar_recomendaciones(claves, "fr")  # francés, no soportado
+        assert es == fr
+
+    def test_parametros_se_interpolan_correctamente(self):
+        """consumo_vampiro tiene 4 parámetros — confirma que todos calzan
+        bien en la plantilla, en los 3 idiomas, sin KeyError."""
+        claves = [("consumo_vampiro", {"cantidad": 4, "simbolo": "$", "monto": 216.0, "moneda": "CLP"})]
+        for idioma in ("es", "en", "pt"):
+            texto = aplicacion._renderizar_recomendaciones(claves, idioma)[0]
+            assert "4" in texto
+            assert "216" in texto
+            assert "CLP" in texto

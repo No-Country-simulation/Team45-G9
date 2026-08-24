@@ -104,8 +104,13 @@ IDIOMAS_SOPORTADOS = {"es", "en", "pt"}
 
 def traducir_resultado(resumen: dict, idioma: str) -> None:
     """
-    Traduce en bloque, con una sola llamada a Groq, los campos de texto
-    generados (recomendaciones, narrativa, advertencias) al idioma pedido.
+    Traduce con Groq el texto que SÍ es libre (generado por un LLM, sin
+    plantilla posible): la narrativa, y las recomendaciones del modelo real
+    de datacience si algún día se muestran en pantalla. Las recomendaciones
+    propias (`resumen["recomendaciones"]`) NO pasan por acá — ya vienen
+    traducidas por plantilla en `_renderizar_recomendaciones()`, sin
+    depender de Groq ni de una llamada de red.
+
     Modifica `resumen` in-place. Si el idioma es 'es' o no soportado, o si
     Groq no esta disponible o la llamada falla, no hace nada: el resultado
     queda en español (el idioma en que se genero originalmente).
@@ -113,14 +118,12 @@ def traducir_resultado(resumen: dict, idioma: str) -> None:
     if idioma not in IDIOMAS_SOPORTADOS or idioma == "es":
         return
     if not groq.disponible():
-        app.logger.warning("GROQ_API_KEY no configurada: no se traduce el resultado.")
+        app.logger.warning("GROQ_API_KEY no configurada: no se traduce la narrativa.")
         return
     nombre_idioma = {"en": "English", "pt": "Português"}[idioma]
     bloque = {
         "narrativa": resumen.get("narrativa", ""),
-        "recomendaciones": resumen.get("recomendaciones", []),
         "recomendaciones_modelo_real": resumen.get("recomendaciones_modelo_real", []),
-        "advertencias_modelo": resumen.get("advertencias_modelo", []),
     }
     try:
         llm = groq.obtener_llm(temperatura=0.0, json_mode=True)
@@ -845,6 +848,7 @@ def _sanitizar(data: dict) -> dict:
         "lavado_frecuencia":      _i("lavado_frecuencia"),
         # Auxiliares
         "luces_interior":         _i("luces_interior"),
+        "cantidad_cargadores":    _i("cantidad_cargadores"),
         "luces_exterior":         _i("luces_exterior"),
         "flag_galones":           _i("flag_galones"),
         # Campo C.1 del contrato del PDF (POST /analisis-energetico) que no
@@ -906,8 +910,116 @@ def _derivar_campos_contrato(d: dict) -> dict:
 # automáticamente cuando el modelo entrenado no está disponible.
 
 
-def _recomendaciones_contextuales(categoria: str, d: dict, perfil: dict) -> list[str]:
+# Plantillas de recomendaciones en los 3 idiomas — para que la traducción no
+# dependa de que Groq esté configurado ni de una llamada de red que puede
+# fallar o tardar. `_recomendaciones_contextuales()` arma (clave, params) en
+# vez de texto final; `_renderizar_recomendaciones()` las traduce al idioma
+# pedido con un simple .format(), sin IA de por medio — es texto que ya
+# conocemos de antemano, no necesita generarse.
+RECOMENDACIONES_I18N = {
+    "accion_eficiente": {
+        "es": "¡Excelente! Tu hogar tiene un consumo eficiente. ¡Sigue así!",
+        "en": "Excellent! Your home has efficient consumption. Keep it up!",
+        "pt": "Excelente! Sua casa tem um consumo eficiente. Continue assim!",
+    },
+    "accion_moderado": {
+        "es": "Tu consumo es moderado. Con pequeños ajustes puedes mejorar tu eficiencia.",
+        "en": "Your consumption is moderate. With small adjustments you can improve your efficiency.",
+        "pt": "Seu consumo é moderado. Com pequenos ajustes você pode melhorar sua eficiência.",
+    },
+    "accion_elevado": {
+        "es": "Tu consumo es elevado. Implementa las recomendaciones para reducirlo significativamente.",
+        "en": "Your consumption is high. Implement the recommendations to reduce it significantly.",
+        "pt": "Seu consumo é elevado. Implemente as recomendações para reduzi-lo significativamente.",
+    },
+    "agua_caliente": {
+        "es": "Tu calentador de agua eléctrico representa aproximadamente el {pct:.0f}% de tu consumo total. Reducir su temperatura en 10°C (20°F) puede ahorrar hasta un 20% de ese consumo.",
+        "en": "Your electric water heater accounts for approximately {pct:.0f}% of your total consumption. Lowering its temperature by 10°C (20°F) can save up to 20% of that consumption.",
+        "pt": "Seu aquecedor de água elétrico representa aproximadamente {pct:.0f}% do seu consumo total. Reduzir a temperatura em 10°C (20°F) pode economizar até 20% desse consumo.",
+    },
+    "standby_general": {
+        "es": "Muchos electrodomésticos siguen consumiendo electricidad aunque no los uses (consumo standby) — puede representar hasta un 10% de tu factura. Desconéctalos cuando no los necesites.",
+        "en": "Many appliances keep drawing power even when not in use (standby consumption) — this can account for up to 10% of your bill. Unplug them when not needed.",
+        "pt": "Muitos eletrodomésticos continuam consumindo eletricidade mesmo sem uso (consumo em espera) — pode representar até 10% da sua conta. Desligue-os quando não precisar.",
+    },
+    "aire_acondicionado": {
+        "es": "Tu aire acondicionado representa aproximadamente el {pct:.0f}% de tu consumo. Subir el termostato 1°C (2°F) y usar un ventilador de techo puede reducir hasta un 15% ese consumo.",
+        "en": "Your air conditioning accounts for approximately {pct:.0f}% of your consumption. Raising the thermostat 1°C (2°F) and using a ceiling fan can reduce that consumption by up to 15%.",
+        "pt": "Seu ar-condicionado representa aproximadamente {pct:.0f}% do seu consumo. Aumentar o termostato em 1°C (2°F) e usar um ventilador de teto pode reduzir até 15% desse consumo.",
+    },
+    "calefaccion": {
+        "es": "Tu calefacción eléctrica representa aproximadamente el {pct:.0f}% de tu consumo. Bajar la temperatura 2°C (4°F) puede ahorrar hasta un 20% de ese consumo.",
+        "en": "Your electric heating accounts for approximately {pct:.0f}% of your consumption. Lowering the temperature 2°C (4°F) can save up to 20% of that consumption.",
+        "pt": "Seu aquecimento elétrico representa aproximadamente {pct:.0f}% do seu consumo. Baixar a temperatura em 2°C (4°F) pode economizar até 20% desse consumo.",
+    },
+    "cerrar_ambientes": {
+        "es": "Mantén cerrados los ambientes que no estés usando, para no calefaccionar espacios vacíos.",
+        "en": "Keep unused rooms closed off, so you're not heating empty spaces.",
+        "pt": "Mantenha fechados os ambientes que não está usando, para não aquecer espaços vazios.",
+    },
+    "secarropas": {
+        "es": "Tu secarropas eléctrico representa aproximadamente el {pct:.0f}% de tu consumo. Secar la ropa al aire libre en vez de usarlo puede ahorrar hasta un 50% de ese consumo.",
+        "en": "Your electric dryer accounts for approximately {pct:.0f}% of your consumption. Air-drying clothes instead can save up to 50% of that consumption.",
+        "pt": "Sua secadora elétrica representa aproximadamente {pct:.0f}% do seu consumo. Secar roupas ao ar livre em vez de usá-la pode economizar até 50% desse consumo.",
+    },
+    "ventanas": {
+        "es": "Tu vivienda tiene más ventanas de lo habitual para su tamaño — pueden ser responsables de hasta un 25% de la energía usada en calefacción y refrigeración. Mejorar el aislamiento (doble vidriado, sellado de filtraciones) ayuda a reducirlo.",
+        "en": "Your home has more windows than usual for its size — they can be responsible for up to 25% of the energy used in heating and cooling. Improving insulation (double glazing, sealing leaks) helps reduce this.",
+        "pt": "Sua casa tem mais janelas do que o habitual para o tamanho — podem ser responsáveis por até 25% da energia usada em aquecimento e refrigeração. Melhorar o isolamento (vidros duplos, vedação de vazamentos) ajuda a reduzir isso.",
+    },
+    "refrigerador_extra": {
+        "es": "Un refrigerador o freezer adicional puede sumar hasta 400 kWh al año — desconéctalo si no es indispensable.",
+        "en": "An extra refrigerator or freezer can add up to 400 kWh per year — unplug it if it's not essential.",
+        "pt": "Um refrigerador ou freezer adicional pode somar até 400 kWh por ano — desligue-o se não for indispensável.",
+    },
+    "tv_standby": {
+        "es": "Activa el modo ahorro de energía en el TV y evita dejarlo en stand-by durante la noche.",
+        "en": "Enable power-saving mode on your TV and avoid leaving it on standby overnight.",
+        "pt": "Ative o modo de economia de energia na TV e evite deixá-la em standby durante a noite.",
+    },
+    "horno": {
+        "es": "Precalienta el horno solo cuando sea necesario y aprovecha el calor residual apagándolo antes de terminar.",
+        "en": "Only preheat the oven when necessary and take advantage of residual heat by turning it off before finishing.",
+        "pt": "Pré-aqueça o forno apenas quando necessário e aproveite o calor residual desligando-o antes de terminar.",
+    },
+    "luces_declaradas": {
+        "es": "Tienes {total} luces declaradas que representan aproximadamente el {pct:.0f}% de tu consumo. Cambiar a LED puede ahorrar hasta un 90% de ese consumo frente a incandescentes.",
+        "en": "You have {total} lights declared, accounting for approximately {pct:.0f}% of your consumption. Switching to LED can save up to 90% of that consumption compared to incandescent bulbs.",
+        "pt": "Você tem {total} luzes declaradas que representam aproximadamente {pct:.0f}% do seu consumo. Mudar para LED pode economizar até 90% desse consumo em comparação com incandescentes.",
+    },
+    "luces_generico": {
+        "es": "Usa bombillas LED en toda la vivienda — pueden ahorrar hasta un 90% frente a las incandescentes — y aprovecha la luz natural durante el día.",
+        "en": "Use LED bulbs throughout your home — they can save up to 90% compared to incandescent bulbs — and make the most of natural light during the day.",
+        "pt": "Use lâmpadas LED em toda a casa — podem economizar até 90% em comparação com incandescentes — e aproveite a luz natural durante o dia.",
+    },
+    "consumo_vampiro": {
+        "es": "Tienes {cantidad} cargadores que declaraste como enchufados sin usar — eso solo, sumado durante el mes, cuesta aproximadamente {simbolo} {monto:.0f} {moneda} que podrías ahorrar simplemente desenchufándolos cuando no los uses.",
+        "en": "You declared {cantidad} chargers left plugged in unused — that alone, over the month, costs approximately {simbolo} {monto:.0f} {moneda}, which you could save just by unplugging them when not in use.",
+        "pt": "Você declarou {cantidad} carregadores deixados ligados sem uso — isso sozinho, somado durante o mês, custa aproximadamente {simbolo} {monto:.0f} {moneda} que você poderia economizar apenas desligando-os quando não estiver usando.",
+    },
+}
+
+
+def _renderizar_recomendaciones(claves_y_params: list[tuple[str, dict]], idioma: str) -> list[str]:
+    """Traduce la lista de (clave, params) al idioma pedido usando las
+    plantillas de arriba — sin IA, sin red, nunca falla ni tarda."""
+    idioma = idioma if idioma in ("es", "en", "pt") else "es"
+    resultado = []
+    for clave, params in claves_y_params:
+        plantilla = RECOMENDACIONES_I18N.get(clave, {}).get(idioma) or RECOMENDACIONES_I18N.get(clave, {}).get("es", "")
+        resultado.append(plantilla.format(**params) if params else plantilla)
+    return resultado
+
+
+def _recomendaciones_contextuales(
+    categoria: str, d: dict, perfil: dict, interpretacion_real: str | None = None,
+    simbolo_moneda: str = "$", moneda_iso: str = "",
+) -> list[tuple[str, dict]]:
     """Genera recomendaciones concretas según categoría y artefactos presentes.
+
+    Devuelve (clave, params) en vez de texto final — se traduce recién con
+    _renderizar_recomendaciones(), al idioma que pida el frontend, sin
+    depender de Groq ni de una llamada de red para texto que ya conocemos.
 
     Reglas con umbrales proporcionales (% del consumo total, no solo presencia/
     ausencia del artefacto), portadas desde el motor estadístico del equipo G9
@@ -915,14 +1027,26 @@ def _recomendaciones_contextuales(categoria: str, d: dict, perfil: dict) -> list
     El umbral de ventanas se corrigió a 3x dormitorios (la tabla vigente de
     datacience), no 4x como tenía la versión original de G9.
     """
-    recs: list[str] = []
+    recs: list[tuple[str, dict]] = []
 
-    if categoria == "Eficiente":
-        recs.append("¡Excelente! Tu hogar tiene un consumo eficiente. ¡Sigue así!")
+    # `interpretacion_real` (Muy baja..Muy alta) es la MISMA fuente que
+    # determina la letra A++ a G que ve la persona (score_eficiencia). Si
+    # está disponible, manda por sobre `categoria` (el clasificador propio,
+    # de 3 clases) — de lo contrario el texto de "acción principal" puede
+    # decir "excelente" mientras la etiqueta visual muestra una G, que es
+    # justo la contradicción que se reportó.
+    if interpretacion_real in ("Alta", "Muy alta"):
+        recs.append(("accion_eficiente", {}))
+    elif interpretacion_real == "Moderada":
+        recs.append(("accion_moderado", {}))
+    elif interpretacion_real in ("Baja", "Muy baja"):
+        recs.append(("accion_elevado", {}))
+    elif categoria == "Eficiente":
+        recs.append(("accion_eficiente", {}))
     elif categoria == "Moderado":
-        recs.append("Tu consumo es moderado. Con pequeños ajustes puedes alcanzar la categoría Eficiente.")
+        recs.append(("accion_moderado", {}))
     else:
-        recs.append("Tu consumo es elevado. Implementa las recomendaciones para reducirlo significativamente.")
+        recs.append(("accion_elevado", {}))
 
     desglose = perfil.get("desglose", {}) if perfil else {}
     total_kwh = sum(desglose.values()) or 1  # evita división por cero si no hay desglose
@@ -936,68 +1060,50 @@ def _recomendaciones_contextuales(categoria: str, d: dict, perfil: dict) -> list
     pct_secarropas = porcentaje("Secadora de ropa")
 
     if d["agua_caliente_electrica"]:
-        recs.append(
-            f"Tu calentador de agua eléctrico representa aproximadamente el {pct_agua:.0f}% de tu consumo "
-            "total. Reducir su temperatura en 10°C (20°F) puede ahorrar hasta un 20% de ese consumo."
-        )
+        recs.append(("agua_caliente", {"pct": pct_agua}))
 
     if max(pct_ac, pct_calef, pct_agua) < 35:
-        recs.append(
-            "Muchos electrodomésticos siguen consumiendo electricidad aunque no los uses (consumo standby) "
-            "— puede representar hasta un 10% de tu factura. Desconéctalos cuando no los necesites."
-        )
+        recs.append(("standby_general", {}))
 
     if pct_ac > 10:
-        recs.append(
-            f"Tu aire acondicionado representa aproximadamente el {pct_ac:.0f}% de tu consumo. Subir el "
-            "termostato 1°C (2°F) y usar un ventilador de techo puede reducir hasta un 15% ese consumo."
-        )
+        recs.append(("aire_acondicionado", {"pct": pct_ac}))
 
     if pct_calef > 10:
-        recs.append(
-            f"Tu calefacción eléctrica representa aproximadamente el {pct_calef:.0f}% de tu consumo. Bajar "
-            "la temperatura 2°C (4°F) puede ahorrar hasta un 20% de ese consumo."
-        )
+        recs.append(("calefaccion", {"pct": pct_calef}))
         if d["dormitorios"] > 2:
-            recs.append("Mantén cerrados los ambientes que no estés usando, para no calefaccionar espacios vacíos.")
+            recs.append(("cerrar_ambientes", {}))
 
     if d["secarropas_electrico"] and d["lavado_frecuencia"] >= 2.5:
-        recs.append(
-            f"Tu secarropas eléctrico representa aproximadamente el {pct_secarropas:.0f}% de tu consumo. "
-            "Secar la ropa al aire libre en vez de usarlo puede ahorrar hasta un 50% de ese consumo."
-        )
+        recs.append(("secarropas", {"pct": pct_secarropas}))
 
     if d["ventanas"] > 3 * max(d["dormitorios"], 1):
-        recs.append(
-            "Tu vivienda tiene más ventanas de lo habitual para su tamaño — pueden ser responsables de "
-            "hasta un 25% de la energía usada en calefacción y refrigeración. Mejorar el aislamiento "
-            "(doble vidriado, sellado de filtraciones) ayuda a reducirlo."
-        )
+        recs.append(("ventanas", {}))
 
     if d["refrigerador"] > 1 or d["freezer"] > 0:
-        recs.append(
-            "Un refrigerador o freezer adicional puede sumar hasta 400 kWh al año — desconéctalo si no es "
-            "indispensable."
-        )
+        recs.append(("refrigerador_extra", {}))
 
     if d["tv_frecuencia"] > 6:
-        recs.append("Activa el modo ahorro de energía en el TV y evita dejarlo en stand-by durante la noche.")
+        recs.append(("tv_standby", {}))
 
     if d["horno_electrico"]:
-        recs.append("Precalienta el horno solo cuando sea necesario y aprovecha el calor residual apagándolo antes de terminar.")
+        recs.append(("horno", {}))
 
     pct_luces = porcentaje("Iluminación exterior") + porcentaje("Iluminación interior")
     total_luces = d.get("luces_exterior", 0) + d.get("luces_interior", 0)
     if total_luces > 0 and pct_luces > 0:
-        recs.append(
-            f"Tienes {total_luces} luces declaradas que representan aproximadamente el {pct_luces:.0f}% "
-            "de tu consumo. Cambiar a LED puede ahorrar hasta un 90% de ese consumo frente a incandescentes."
-        )
+        recs.append(("luces_declaradas", {"total": total_luces, "pct": pct_luces}))
     else:
-        recs.append(
-            "Usa bombillas LED en toda la vivienda — pueden ahorrar hasta un 90% frente a las incandescentes — "
-            "y aprovecha la luz natural durante el día."
+        recs.append(("luces_generico", {}))
+
+    if d.get("cantidad_cargadores", 0) > 0:
+        item_vampiro = next(
+            (i for i in perfil["items"] if i["nombre"] == "Consumo vampiro (cargadores enchufados)"), None
         )
+        if item_vampiro:
+            recs.append(("consumo_vampiro", {
+                "cantidad": d["cantidad_cargadores"], "simbolo": simbolo_moneda,
+                "monto": item_vampiro["ahorro_clp_mes"], "moneda": moneda_iso,
+            }))
 
     return recs[:8]
 
@@ -1053,7 +1159,16 @@ def _calcular_analisis_energetico():
     fuente_clasificacion = resultado_clasificacion["fuente_clasificacion"]
     advertencias_modelo = resultado_clasificacion["advertencias"]
     score_eficiencia = clasificador.calcular_score_eficiencia(d, consumo_kwh)
-    recomendaciones = _recomendaciones_contextuales(categoria, d, perfil)
+
+    # Se lee acá (no más abajo) porque las recomendaciones ya se renderizan
+    # en el idioma correcto de inmediato, con plantillas propias — no
+    # dependen de Groq ni de una llamada de red que puede fallar o tardar.
+    idioma_pedido = (data.get("idioma") or "es").lower()
+
+    recomendaciones_claves = _recomendaciones_contextuales(
+        categoria, d, perfil, score_eficiencia["interpretacion"], simbolo_moneda, moneda_iso
+    )
+    recomendaciones = _renderizar_recomendaciones(recomendaciones_claves, idioma_pedido)
 
     # ── 7. Narrativa con LLM ────────────────────────────────────────────────
     narrativa = generar_narrativa({
@@ -1106,8 +1221,10 @@ def _calcular_analisis_energetico():
         "ahorro_potencial_clp_mes": ahorro_estimado,
     }
 
-    # ── 8. Traducción (si el frontend pidió un idioma distinto a español) ──
-    idioma_pedido = (data.get("idioma") or "es").lower()
+    # ── 8. Traducción de la narrativa libre del LLM (si se pidió otro idioma) ──
+    # Las recomendaciones ya vienen traducidas por plantilla, arriba — esto
+    # solo traduce `narrativa`, que es texto libre generado por Groq y no
+    # tiene una plantilla fija posible.
     traducir_resultado(resumen, idioma_pedido)
 
     # Fase D: persistir el historial. Si falla (disco lleno, permisos, lo que

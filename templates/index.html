@@ -422,6 +422,19 @@
             </div>
 
             <div class="form-group">
+              <label class="form-label" for="inputCargadoresVampiro">
+                <span class="label-badge"><i data-lucide="plug-zap"></i></span>
+                <span data-i18n="eq_vampire">Cargadores que dejas enchufados sin usar (celular, tablet, notebook)</span>
+              </label>
+              <span class="form-hint" data-i18n="eq_vampire_hint">Aunque no estén cargando nada, siguen consumiendo un poco de electricidad — es el "consumo fantasma".</span>
+              <div class="counter-input">
+                <button type="button" class="counter-btn counter-btn--minus" data-target="inputCargadoresVampiro">−</button>
+                <input type="number" class="form-input counter-value" id="inputCargadoresVampiro" min="0" value="0">
+                <button type="button" class="counter-btn counter-btn--plus" data-target="inputCargadoresVampiro">+</button>
+              </div>
+            </div>
+
+            <div class="form-group">
               <label class="form-label" for="inputLucesExterior">
                 <span class="label-badge"><i data-lucide="lightbulb"></i></span>
                 <span data-i18n="eq_ext_lights">Luces en el exterior de la vivienda</span>

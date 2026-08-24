@@ -318,6 +318,22 @@ def estimar_desde_perfil(respuestas: dict, tarifa: float) -> dict:
         item_luces_int["nombre"] = "Iluminación interior"
         items.append(item_luces_int)
 
+    # Consumo vampiro/fantasma: cargadores enchufados sin usar. Se asume
+    # "cargador_celular" (0.5W en standby) como base representativa — es el
+    # tipo más común y el más conservador de los tres que hay en la tabla de
+    # referencia (celular/tablet/notebook), para no sobreestimar. Con
+    # horas_uso_diario=0 se asume que están enchufados las 24 horas sin
+    # cargar nada activamente — es justo el escenario "vampiro" que se está
+    # preguntando, no el consumo de cargarlos de verdad.
+    cantidad_cargadores = int(leer("cantidad_cargadores"))
+    if cantidad_cargadores > 0:
+        item_vampiro = consumo_mensual_standby(
+            "cargador_celular", horas_uso_diario=0, tarifa=tarifa,
+            cantidad=cantidad_cargadores, queda_conectado=True, veces_semana=7,
+        )
+        item_vampiro["nombre"] = "Consumo vampiro (cargadores enchufados)"
+        items.append(item_vampiro)
+
     desglose = {item["nombre"]: item["kwh_mes_actual"] for item in items}
     total_kwh = sum(item["kwh_mes_actual"] for item in items)
     ahorro_dinero = sum(item.get("ahorro_clp_mes", 0) for item in items)

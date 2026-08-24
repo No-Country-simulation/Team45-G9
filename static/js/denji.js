@@ -1008,7 +1008,7 @@
       const btnSubmit = document.getElementById('btnSubmit');
       const resultadosEl = document.getElementById('resultados');
       if(btnSubmit && resultadosEl){
-        const texto = 'Listo, ya tengo todo. Voy a calcular tu consumo, dame un segundo.';
+        const texto = _t('denji_calculando');
         statusEl.textContent = 'Denji: ' + texto;
         hablar(texto);
         card.innerHTML = '<p style="margin:0 0 10px">' + texto + '</p>';
@@ -1016,7 +1016,7 @@
         esperarYLeerResultados(resultadosEl);
       } else {
         // fallback: si no encontró los elementos reales (ej. probando este script fuera de la página de JC)
-        const texto = 'Te hago el resumen.';
+        const texto = _t('denji_resumen_fallback');
         statusEl.textContent = 'Denji: ' + texto;
         hablar(texto);
         card.innerHTML = '<p style="margin:0 0 10px">' + texto + '</p><pre>' + JSON.stringify(respuestas, null, 2) + '</pre>';
@@ -1034,7 +1034,7 @@
       if(resuelto) return;
       resuelto = true;
       observer.disconnect();
-      const texto = 'El cálculo está tardando más de lo normal. Revisa la pantalla, puede que haya un error.';
+      const texto = _t('denji_tardando');
       statusEl.textContent = 'Denji: ' + texto;
       hablar(texto);
     }, 15000);
@@ -1056,16 +1056,16 @@
     const ahorro = document.getElementById('metricaAhorro')?.textContent?.trim();
     const items = Array.from(document.querySelectorAll('#listaRecomendaciones li')).map(li => li.textContent.trim());
 
-    let texto = 'Listo, aquí está tu resultado.';
-    if(kwh) texto += ' Tu consumo estimado es ' + kwh + '.';
-    if(ahorro) texto += ' Tu ahorro potencial es ' + ahorro + '.';
+    let texto = _t('denji_resultado_listo');
+    if(kwh) texto += ' ' + _t('denji_consumo_estimado').replace('{valor}', kwh);
+    if(ahorro) texto += ' ' + _t('denji_ahorro_potencial').replace('{valor}', ahorro);
     if(items.length){
-      texto += ' Mis recomendaciones: ' + items.join('. ');
+      texto += ' ' + _t('denji_mis_recomendaciones').replace('{valor}', items.join('. '));
     }
 
     statusEl.textContent = 'Denji: ' + _t('denji_listo');
     hablar(texto);
-    card.innerHTML = '<p style="margin:0 0 10px">Listo, aquí está tu resultado:</p>' +
+    card.innerHTML = '<p style="margin:0 0 10px">' + _t('denji_resultado_listo') + '</p>' +
       (kwh ? '<p style="margin:0 0 4px"><strong>Consumo:</strong> ' + kwh + '</p>' : '') +
       (ahorro ? '<p style="margin:0 0 8px"><strong>Ahorro:</strong> ' + ahorro + '</p>' : '') +
       (items.length ? '<ul style="margin:0;padding-left:18px">' + items.map(i => '<li>' + i + '</li>').join('') + '</ul>' : '');
@@ -1073,9 +1073,8 @@
 
   function detectarUbicacionReal(){
     statusEl.textContent = 'Denji: ' + _t('denji_detectando_ubicacion');
-    card.innerHTML = '<p style="margin:0 0 8px">Detectando tu ubicación…</p>' +
-      '<p class="denji-sim-note">Tu navegador te va a pedir permiso para usar tu ubicación. ' +
-      'Consultamos la ciudad en OpenStreetMap enviando solo una posición aproximada.</p>';
+    card.innerHTML = '<p style="margin:0 0 8px">' + _t('denji_detectando_ubicacion') + '</p>' +
+      '<p class="denji-sim-note">' + _t('denji_permiso_ubicacion') + '</p>';
 
     if(!('geolocation' in navigator)){
       renderUbicacionManual();
@@ -1110,7 +1109,7 @@
       },
       () => {
         // permiso denegado, tiempo agotado, u otro error del navegador
-        const texto = 'No pude acceder a tu ubicación. Vamos a ingresarla manualmente.';
+        const texto = _t('denji_no_ubicacion');
         statusEl.textContent = 'Denji: ' + texto;
         hablar(texto);
         renderUbicacionManual();
@@ -1120,7 +1119,8 @@
   }
 
   function mostrarConfirmacionUbicacion(comuna, region, pais, paisCodigo){
-    const texto = 'Detecté que estás en ' + [comuna, region, pais].filter(Boolean).join(', ') + '. ¿Es correcto?';
+    const lugar = [comuna, region, pais].filter(Boolean).join(', ');
+    const texto = _t('denji_detecte_prefijo').replace('{lugar}', lugar);
     statusEl.textContent = 'Denji: ' + texto;
     hablar(texto);
     card.innerHTML = '<p style="margin:0 0 4px">' + texto + '</p>';
@@ -1168,8 +1168,24 @@
       respuestas.pais = document.getElementById('denji-pais').value || 'No especificado';
       respuestas.estado_provincia = document.getElementById('denji-estado').value || 'No especificado';
       respuestas.comuna = document.getElementById('denji-comuna').value || 'No especificado';
-      escribirValor('pais', respuestas.pais);
+      const paisEncontrado = escribirValor('pais', respuestas.pais);
       escribirValor('estado_provincia', respuestas.estado_provincia);
+      if (!paisEncontrado) {
+        // fijarPaisPorNombre() no encontró ninguna opción que calzara con lo
+        // que la persona escribió — antes esto fallaba en silencio: la
+        // persona creía haber respondido, pero el <select> real nunca se
+        // actualizaba, y el análisis se mandaba sin país. Ahora se avisa y
+        // no se avanza hasta que elija de la lista real.
+        const avisoId = 'denji-pais-no-encontrado';
+        if (!document.getElementById(avisoId)) {
+          const aviso = document.createElement('p');
+          aviso.id = avisoId;
+          aviso.style.cssText = 'color:#dc2626;font-size:0.85rem;margin-top:8px';
+          aviso.textContent = _t('denji_pais_no_encontrado');
+          document.getElementById('denji-ubi-submit').insertAdjacentElement('afterend', aviso);
+        }
+        return;
+      }
       goNext();
     };
   }
