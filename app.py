@@ -845,6 +845,7 @@ def _sanitizar(data: dict) -> dict:
         "lavado_frecuencia":      _i("lavado_frecuencia"),
         # Auxiliares
         "luces_interior":         _i("luces_interior"),
+        "cantidad_cargadores":    _i("cantidad_cargadores"),
         "luces_exterior":         _i("luces_exterior"),
         "flag_galones":           _i("flag_galones"),
         # Campo C.1 del contrato del PDF (POST /analisis-energetico) que no
@@ -906,7 +907,10 @@ def _derivar_campos_contrato(d: dict) -> dict:
 # automáticamente cuando el modelo entrenado no está disponible.
 
 
-def _recomendaciones_contextuales(categoria: str, d: dict, perfil: dict) -> list[str]:
+def _recomendaciones_contextuales(
+    categoria: str, d: dict, perfil: dict, interpretacion_real: str | None = None,
+    simbolo_moneda: str = "$", moneda_iso: str = "",
+) -> list[str]:
     """Genera recomendaciones concretas según categoría y artefactos presentes.
 
     Reglas con umbrales proporcionales (% del consumo total, no solo presencia/
@@ -917,7 +921,19 @@ def _recomendaciones_contextuales(categoria: str, d: dict, perfil: dict) -> list
     """
     recs: list[str] = []
 
-    if categoria == "Eficiente":
+    # `interpretacion_real` (Muy baja..Muy alta) es la MISMA fuente que
+    # determina la letra A++ a G que ve la persona (score_eficiencia). Si
+    # está disponible, manda por sobre `categoria` (el clasificador propio,
+    # de 3 clases) — de lo contrario el texto de "acción principal" puede
+    # decir "excelente" mientras la etiqueta visual muestra una G, que es
+    # justo la contradicción que se reportó.
+    if interpretacion_real in ("Alta", "Muy alta"):
+        recs.append("¡Excelente! Tu hogar tiene un consumo eficiente. ¡Sigue así!")
+    elif interpretacion_real == "Moderada":
+        recs.append("Tu consumo es moderado. Con pequeños ajustes puedes mejorar tu eficiencia.")
+    elif interpretacion_real in ("Baja", "Muy baja"):
+        recs.append("Tu consumo es elevado. Implementa las recomendaciones para reducirlo significativamente.")
+    elif categoria == "Eficiente":
         recs.append("¡Excelente! Tu hogar tiene un consumo eficiente. ¡Sigue así!")
     elif categoria == "Moderado":
         recs.append("Tu consumo es moderado. Con pequeños ajustes puedes alcanzar la categoría Eficiente.")
@@ -999,6 +1015,17 @@ def _recomendaciones_contextuales(categoria: str, d: dict, perfil: dict) -> list
             "y aprovecha la luz natural durante el día."
         )
 
+    if d.get("cantidad_cargadores", 0) > 0:
+        item_vampiro = next(
+            (i for i in perfil["items"] if i["nombre"] == "Consumo vampiro (cargadores enchufados)"), None
+        )
+        if item_vampiro:
+            recs.append(
+                f"Tienes {d['cantidad_cargadores']} cargadores que declaraste como enchufados sin usar — "
+                f"eso solo, sumado durante el mes, cuesta aproximadamente {simbolo_moneda} {item_vampiro['ahorro_clp_mes']:.0f} "
+                f"{moneda_iso} que podrías ahorrar simplemente desenchufándolos cuando no los uses."
+            )
+
     return recs[:8]
 
 
@@ -1053,7 +1080,9 @@ def _calcular_analisis_energetico():
     fuente_clasificacion = resultado_clasificacion["fuente_clasificacion"]
     advertencias_modelo = resultado_clasificacion["advertencias"]
     score_eficiencia = clasificador.calcular_score_eficiencia(d, consumo_kwh)
-    recomendaciones = _recomendaciones_contextuales(categoria, d, perfil)
+    recomendaciones = _recomendaciones_contextuales(
+        categoria, d, perfil, score_eficiencia["interpretacion"], simbolo_moneda, moneda_iso
+    )
 
     # ── 7. Narrativa con LLM ────────────────────────────────────────────────
     narrativa = generar_narrativa({

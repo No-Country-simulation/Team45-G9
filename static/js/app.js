@@ -92,7 +92,9 @@ function updateVoltiMessage(key) {
   // mensaje en español, no mostrar la clave literal en pantalla.
   const message = (traducido !== claveTraduccion) ? traducido : (VOLTI_MESSAGES[key] || VOLTI_MESSAGES[1]);
   const imgSrc  = VOLTI_ASSETS[key]   || VOLTI_ASSETS[1];
-  const mood    = VOLTI_MOODS[key]    || VOLTI_MOODS[1];
+  const claveMood = 'volti_mood_' + key;
+  const moodTraducido = _t(claveMood);
+  const mood = (moodTraducido !== claveMood) ? moodTraducido : (VOLTI_MOODS[key] || VOLTI_MOODS[1]);
 
   if (voltiAvatarImg) {
     voltiAvatarImg.style.opacity = '0';
@@ -239,6 +241,17 @@ function validarPaso(pasoActual) {
         valido = false;
       }
     }
+    // El campo ya tenía min="0" max="24" en el HTML, pero eso no bloquea
+    // que alguien escriba 25 a mano — los navegadores no impiden tipear
+    // fuera de rango en <input type="number">, solo afectan las flechitas.
+    const tvFrecuenciaEl = document.getElementById('tvFrecuencia');
+    if (tvFrecuenciaEl) {
+      const horas = parseFloat(tvFrecuenciaEl.value);
+      if (!isNaN(horas) && (horas < 0 || horas > 24)) {
+        showError(tvFrecuenciaEl, 'Las horas de uso diario de TV deben estar entre 0 y 24.');
+        valido = false;
+      }
+    }
   }
 
   if (!valido) updateVoltiMessage('error');
@@ -369,7 +382,7 @@ document.getElementById('inputBoleta')?.addEventListener('change', async (e) => 
     }
 
     const confianza = datos.confianza ? ` (confianza ${datos.confianza})` : '';
-    pintar(`Listo — ${partes.join(' · ')}${confianza}. Revisa que coincida con tu boleta.`, 'ok');
+    pintar(`✓ Cargado en "Consumo eléctrico mensual" — ${partes.join(' · ')}${confianza}. Revisa que coincida con tu boleta antes de continuar.`, 'ok');
   } catch (error) {
     const esTimeout = error.name === 'AbortError';
     console.error('Error al subir la boleta:', error);
@@ -637,6 +650,7 @@ document.getElementById('btnSubmit')?.addEventListener('click', async (evento) =
     freezer:               parseInt(v('freezer')?.value) || 0,
     luces_exterior:        parseInt(v('inputLucesExterior')?.value) || 0,
     luces_interior:        parseInt(v('inputLucesInterior')?.value) || 0,
+    cantidad_cargadores:   parseInt(v('inputCargadoresVampiro')?.value) || 0,
     tv:                    parseInt(v('tv')?.value) || 0,
     tv_frecuencia:         horasDiariasTv * 7,
     tipo_inmueble:         tipoInmuebleSeleccionado,

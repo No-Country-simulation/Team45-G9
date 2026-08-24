@@ -1073,9 +1073,8 @@
 
   function detectarUbicacionReal(){
     statusEl.textContent = 'Denji: ' + _t('denji_detectando_ubicacion');
-    card.innerHTML = '<p style="margin:0 0 8px">Detectando tu ubicación…</p>' +
-      '<p class="denji-sim-note">Tu navegador te va a pedir permiso para usar tu ubicación. ' +
-      'Consultamos la ciudad en OpenStreetMap enviando solo una posición aproximada.</p>';
+    card.innerHTML = '<p style="margin:0 0 8px">' + _t('denji_detectando_ubicacion') + '</p>' +
+      '<p class="denji-sim-note">' + _t('denji_permiso_ubicacion') + '</p>';
 
     if(!('geolocation' in navigator)){
       renderUbicacionManual();
@@ -1110,7 +1109,7 @@
       },
       () => {
         // permiso denegado, tiempo agotado, u otro error del navegador
-        const texto = 'No pude acceder a tu ubicación. Vamos a ingresarla manualmente.';
+        const texto = _t('denji_no_ubicacion');
         statusEl.textContent = 'Denji: ' + texto;
         hablar(texto);
         renderUbicacionManual();
@@ -1120,7 +1119,8 @@
   }
 
   function mostrarConfirmacionUbicacion(comuna, region, pais, paisCodigo){
-    const texto = 'Detecté que estás en ' + [comuna, region, pais].filter(Boolean).join(', ') + '. ¿Es correcto?';
+    const lugar = [comuna, region, pais].filter(Boolean).join(', ');
+    const texto = _t('denji_detecte_prefijo').replace('{lugar}', lugar);
     statusEl.textContent = 'Denji: ' + texto;
     hablar(texto);
     card.innerHTML = '<p style="margin:0 0 4px">' + texto + '</p>';
@@ -1168,8 +1168,24 @@
       respuestas.pais = document.getElementById('denji-pais').value || 'No especificado';
       respuestas.estado_provincia = document.getElementById('denji-estado').value || 'No especificado';
       respuestas.comuna = document.getElementById('denji-comuna').value || 'No especificado';
-      escribirValor('pais', respuestas.pais);
+      const paisEncontrado = escribirValor('pais', respuestas.pais);
       escribirValor('estado_provincia', respuestas.estado_provincia);
+      if (!paisEncontrado) {
+        // fijarPaisPorNombre() no encontró ninguna opción que calzara con lo
+        // que la persona escribió — antes esto fallaba en silencio: la
+        // persona creía haber respondido, pero el <select> real nunca se
+        // actualizaba, y el análisis se mandaba sin país. Ahora se avisa y
+        // no se avanza hasta que elija de la lista real.
+        const avisoId = 'denji-pais-no-encontrado';
+        if (!document.getElementById(avisoId)) {
+          const aviso = document.createElement('p');
+          aviso.id = avisoId;
+          aviso.style.cssText = 'color:#dc2626;font-size:0.85rem;margin-top:8px';
+          aviso.textContent = _t('denji_pais_no_encontrado');
+          document.getElementById('denji-ubi-submit').insertAdjacentElement('afterend', aviso);
+        }
+        return;
+      }
       goNext();
     };
   }
