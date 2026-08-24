@@ -238,6 +238,12 @@
     q_freezer:       { es: '¿Cuántos freezers independientes del refrigerador tiene la vivienda?', en: 'How many standalone freezers does the home have?', pt: 'Quantos freezers independentes a moradia tem?' },
     q_tv:            { es: '¿Cuántos televisores tiene la vivienda?', en: 'How many TVs does the home have?', pt: 'Quantas televisões a moradia tem?' },
     q_tv_freq:       { es: '¿Cuántas horas al día está encendido el televisor principal?', en: 'How many hours per day is the main TV on?', pt: 'Quantas horas por dia a TV principal fica ligada?' },
+    q_luces_ext:     { es: '¿Cuántas luces exteriores tienes en la vivienda?', en: 'How many outdoor lights do you have?', pt: 'Quantas luzes externas você tem na residência?' },
+    q_luces_int:     { es: '¿Cuántas luces interiores dejas encendidas al menos 4 horas al día?', en: 'How many indoor lights do you leave on for at least 4 hours a day?', pt: 'Quantas luzes internas você deixa acesas por pelo menos 4 horas por dia?' },
+    q_cargadores:    { es: '¿Cuántos cargadores (celular, tablet, notebook) dejas enchufados sin usar?', en: 'How many chargers (phone, tablet, laptop) do you leave plugged in unused?', pt: 'Quantos carregadores (celular, tablet, notebook) você deixa ligados sem uso?' },
+    q_horario_pico:  { es: '¿En qué momentos del día usas más electricidad? Puedes marcar varios. Por cierto, si tienes tu boleta de luz a mano, puedes subirla en la pantalla para que lea el consumo por ti — yo no puedo hacer eso por voz.', en: "When during the day do you use the most electricity? You can select several. By the way, if you have your electricity bill handy, you can upload it on screen so it reads the consumption for you — I can't do that by voice.", pt: 'Em que momentos do dia você usa mais eletricidade? Você pode marcar vários. A propósito, se você tiver sua conta de luz à mão, pode enviá-la na tela para que ela leia o consumo por você — eu não posso fazer isso por voz.' },
+    denji_confirmar: { es: 'Confirmar', en: 'Confirm', pt: 'Confirmar' },
+    denji_no_se:     { es: 'No lo sé', en: "I don't know", pt: 'Não sei' },
 
     // Voice recognition errors
     voice_no_speech: { es: 'No escuché nada, intenta de nuevo.', en: 'I didn\'t hear anything, try again.', pt: 'Não ouvi nada, tente novamente.' },
@@ -281,6 +287,7 @@
     denji_no_ubicacion:      { es: 'No pude acceder a tu ubicación. Vamos a ingresarla manualmente.', en: "I couldn't access your location. Let's enter it manually.", pt: 'Não consegui acessar sua localização. Vamos inseri-la manualmente.' },
     denji_detecte_prefijo:   { es: 'Detecté que estás en {lugar}. ¿Es correcto?', en: 'I detected you are in {lugar}. Is that correct?', pt: 'Detectei que você está em {lugar}. Está correto?' },
     denji_es_correcto:      { es: 'Sí, es correcto', en: 'Yes, that is correct', pt: 'Sim, está correto' },
+    denji_pais_no_encontrado: { es: 'No reconocí ese país en la lista — revisa cómo lo escribiste e inténtalo de nuevo.', en: "I didn't recognize that country from the list — check the spelling and try again.", pt: 'Não reconheci esse país na lista — verifique a ortografia e tente novamente.' },
     denji_corregir:         { es: 'No, corregir', en: 'No, correct it', pt: 'Não, corrigir' },
     denji_en_espera:        { es: 'en espera, sin interactuar', en: 'waiting, not interacting', pt: 'em espera, sem interagir' },
     denji_activar:          { es: 'Activar asistente Denji', en: 'Activate Denji assistant', pt: 'Ativar assistente Denji' },
