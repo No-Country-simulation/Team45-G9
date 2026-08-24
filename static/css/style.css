@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    VólticvS — style.css v8.0  |  CORRECCIONES PRESENTACIÓN
-   Paleta Oficial: EQUIPO VOLTI
+   Paleta Oficial: EQUIPO DENJI
    ═══════════════════════════════════════════════════════════ */
 
 /* ── 1. VARIABLES ─────────────────────────────────────────── */
@@ -108,11 +108,11 @@ select, input { font-family: var(--font); }
 .header__logo:hover { transform: scale(1.08) rotate(-4deg); }
 
 .header__title {
-  font-size: 1.15rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: var(--white);
-  letter-spacing: -0.02em;
-  line-height: 1.1;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
 }
 
 .header__tagline {
@@ -131,7 +131,7 @@ select, input { font-family: var(--font); }
   align-items: flex-start;
 }
 
-/* ── 5. VOLTI PANEL ────────────────────────────────────────── */
+/* ── 5. PANEL LATERAL (Denji) ──────────────────────────────── */
 .volti-panel {
   width: 220px;
   flex-shrink: 0;
@@ -161,7 +161,7 @@ select, input { font-family: var(--font); }
   box-shadow: var(--s-glow);
 }
 
-/* Imagen de Volti (PNG individual) */
+/* Imagen de Denji en el panel lateral (PNG individual) */
 .volti-avatar-img {
   width: 100%;
   height: 100%;

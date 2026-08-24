@@ -32,7 +32,7 @@ from __future__ import annotations
 import logging
 import os
 
-logger = logging.getLogger("volticvs.oci")
+logger = logging.getLogger("denji.oci")
 
 OCI_BUCKET_NAMESPACE = os.getenv("OCI_BUCKET_NAMESPACE")
 OCI_BUCKET_NAME = os.getenv("OCI_BUCKET_NAME")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import os
 import re
 import tempfile
@@ -96,6 +97,47 @@ def _numero_de_boleta(texto: str) -> float | None:
         return float(limpio)
     except ValueError:
         return None
+
+
+IDIOMAS_SOPORTADOS = {"es", "en", "pt"}
+
+
+def traducir_resultado(resumen: dict, idioma: str) -> None:
+    """
+    Traduce en bloque, con una sola llamada a Groq, los campos de texto
+    generados (recomendaciones, narrativa, advertencias) al idioma pedido.
+    Modifica `resumen` in-place. Si el idioma es 'es' o no soportado, o si
+    Groq no esta disponible o la llamada falla, no hace nada: el resultado
+    queda en español (el idioma en que se genero originalmente).
+    """
+    if idioma not in IDIOMAS_SOPORTADOS or idioma == "es":
+        return
+    if not groq.disponible():
+        app.logger.warning("GROQ_API_KEY no configurada: no se traduce el resultado.")
+        return
+    nombre_idioma = {"en": "English", "pt": "Português"}[idioma]
+    bloque = {
+        "narrativa": resumen.get("narrativa", ""),
+        "recomendaciones": resumen.get("recomendaciones", []),
+        "recomendaciones_modelo_real": resumen.get("recomendaciones_modelo_real", []),
+        "advertencias_modelo": resumen.get("advertencias_modelo", []),
+    }
+    try:
+        llm = groq.obtener_llm(temperatura=0.0, json_mode=True)
+        instruccion = (
+            f"Traduce a {nombre_idioma} todos los valores de texto del siguiente "
+            "objeto JSON, manteniendo EXACTAMENTE las mismas claves y la misma "
+            "estructura (mismo numero de elementos en las listas). No traduzcas "
+            "numeros, simbolos de moneda ni codigos. Responde solo con el JSON "
+            f"traducido: {json.dumps(bloque, ensure_ascii=False)}"
+        )
+        respuesta = llm.invoke([HumanMessage(content=instruccion)])
+        traducido = json.loads(respuesta.content)
+        for campo in bloque:
+            if campo in traducido:
+                resumen[campo] = traducido[campo]
+    except Exception as error:
+        app.logger.warning("No se pudo traducir el resultado a %s: %s", idioma, error)
 
 
 SYSTEM_PROMPT_NARRADOR = """Eres "VólticvS", un asesor energético inteligente y amigable.
@@ -1063,6 +1105,10 @@ def _calcular_analisis_energetico():
         "total_clp_mes":            costo_estimado,
         "ahorro_potencial_clp_mes": ahorro_estimado,
     }
+
+    # ── 8. Traducción (si el frontend pidió un idioma distinto a español) ──
+    idioma_pedido = (data.get("idioma") or "es").lower()
+    traducir_resultado(resumen, idioma_pedido)
 
     # Fase D: persistir el historial. Si falla (disco lleno, permisos, lo que
     # sea), no se cae la respuesta principal — el análisis ya está calculado,

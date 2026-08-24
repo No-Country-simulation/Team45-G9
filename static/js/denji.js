@@ -78,7 +78,7 @@
   statusEl.id = 'denji-status';
   statusEl.setAttribute('aria-live', 'polite');
   statusEl.style.margin = '0';
-  statusEl.textContent = 'Iniciando…';
+  statusEl.textContent = _t('denji_iniciando');
   hud.appendChild(statusEl);
 
   const nombreEl = document.createElement('p');
@@ -97,14 +97,21 @@
     cargarVoces();
     speechSynthesis.onvoiceschanged = cargarVoces;
   }
+  const PRIORIDAD_VOZ_POR_IDIOMA = {
+    es: ['es-419','es-us','es-mx','es-co','es-pe','es'],
+    en: ['en-us','en-gb','en'],
+    pt: ['pt-br','pt-pt','pt']
+  };
   function elegirVoz(){
     if(!voces.length) return null;
-    const prioridad = ['es-419','es-us','es-mx','es-co','es-pe','es'];
+    const idioma = (window.DenjiI18n && window.DenjiI18n.lang) || 'es';
+    const prioridad = PRIORIDAD_VOZ_POR_IDIOMA[idioma] || PRIORIDAD_VOZ_POR_IDIOMA.es;
     for(const pref of prioridad){
       const v = voces.find(v => v.lang.toLowerCase().startsWith(pref) && !v.lang.toLowerCase().startsWith('es-es'));
       if(v) return v;
     }
-    return voces.find(v => v.lang.toLowerCase().startsWith('es')) || null;
+    const prefijo = idioma === 'en' ? 'en' : idioma === 'pt' ? 'pt' : 'es';
+    return voces.find(v => v.lang.toLowerCase().startsWith(prefijo)) || null;
   }
   let modoMovimiento = 'normal';
   let caminando = false;
@@ -210,8 +217,19 @@
   // Latinoamérica) es válido en BCP-47 pero su reconocedor puede rechazarlo con
   // language-not-supported. Se prueba el idioma del navegador y se cae a
   // variantes concretas, que sí están en su lista.
-  const IDIOMAS_VOZ = [navigator.language, 'es-CL', 'es-MX', 'es-ES', 'es'];
+  const IDIOMAS_VOZ_POR_IDIOMA = {
+    es: [navigator.language, 'es-CL', 'es-MX', 'es-ES', 'es'],
+    en: [navigator.language, 'en-US', 'en-GB', 'en'],
+    pt: [navigator.language, 'pt-BR', 'pt-PT', 'pt']
+  };
+  function obtenerIdiomasVoz(){
+    const idioma = (window.DenjiI18n && window.DenjiI18n.lang) || 'es';
+    return IDIOMAS_VOZ_POR_IDIOMA[idioma] || IDIOMAS_VOZ_POR_IDIOMA.es;
+  }
   let idiomaVozIdx = 0;
+  if (typeof window !== 'undefined') {
+    window.addEventListener('denji-lang-change', function () { idiomaVozIdx = 0; });
+  }
 
   /**
    * Normaliza lo que devuelve el reconocedor, que NO es texto limpio: Chrome
@@ -251,7 +269,7 @@
 
     const rec = new SpeechRecognitionAPI();
     reconocimientoActivo = rec;
-    rec.lang = IDIOMAS_VOZ[idiomaVozIdx] || 'es-ES';
+    rec.lang = obtenerIdiomasVoz()[idiomaVozIdx] || 'es-ES';
     rec.continuous = false;
     // Resultados provisionales ACTIVADOS a propósito. Una respuesta de una sola
     // palabra corta —"uno", "cero", "dos"— dura unos 300 ms: no siempre supera
@@ -301,9 +319,9 @@
       resuelto = true;
       traza('ERROR', { codigo: e.error, mensaje: e.message || '(sin mensaje)', idioma: rec.lang });
       // Con un idioma no soportado se reintenta con el siguiente de la lista.
-      if(e.error === 'language-not-supported' && idiomaVozIdx < IDIOMAS_VOZ.length - 1){
+      if(e.error === 'language-not-supported' && idiomaVozIdx < obtenerIdiomasVoz().length - 1){
         idiomaVozIdx++;
-        traza('reintentando con otro idioma', IDIOMAS_VOZ[idiomaVozIdx]);
+        traza('reintentando con otro idioma', obtenerIdiomasVoz()[idiomaVozIdx]);
         clearTimeout(cortar);
         escucharUnaVez(onTranscript, onError, onFin);
         return;
@@ -359,7 +377,7 @@
       contexto_seguro: window.isSecureContext,
       api_reconocimiento: !!SpeechRecognitionAPI,
       api_sintesis: 'speechSynthesis' in window,
-      idioma_en_uso: IDIOMAS_VOZ[idiomaVozIdx],
+      idioma_en_uso: obtenerIdiomasVoz()[idiomaVozIdx],
       ultima_transcripcion: window.denjiUltimaTranscripcion || '(todavía ninguna)'
     };
     console.table(informe);
@@ -385,7 +403,7 @@
       // Existe la API pero el navegador la bloquea por no ser https ni localhost.
       const aviso = document.createElement('p');
       aviso.className = 'denji-sim-note';
-      aviso.textContent = 'El micrófono necesita que entres por localhost o por https, no por la IP de red.';
+      aviso.textContent = _t('denji_mic_https');
       return aviso;
     }
 
@@ -404,12 +422,12 @@
       if(escuchando){
         detenerEscucha();
         restaurar();
-        statusEl.textContent = 'Denji: escucha cancelada, usa los botones si prefieres';
+        statusEl.textContent = 'Denji: ' + _t('denji_escucha_cancelada');
         return;
       }
 
       escuchando = true;
-      b.textContent = '🎤 Escuchando… (toca para cancelar)';
+      b.textContent = _t('denji_escuchando');
 
       escucharUnaVez(
         (t) => { restaurar(); onTranscript(t); },
@@ -753,7 +771,7 @@
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'denji-omitir-html-btn';
-      btn.textContent = 'No quiero responder';
+      btn.textContent = _t('denji_no_responder');
       let omitido = false;
 
       btn.addEventListener('click', () => {
@@ -784,30 +802,33 @@
   const respuestas = {};
   let idx = 0;
   window.denjiReiniciar = function(){ if('speechSynthesis' in window) speechSynthesis.cancel(); detenerEscucha(); hablando = false; actualizarAnimacion(); Object.keys(respuestas).forEach(k => delete respuestas[k]); idx = 0; asistenteActivo = null; ultimoJCStep = null; render(); };
+  function _t(key, fallback) {
+    return (window.DenjiI18n ? window.DenjiI18n.t(key) : fallback);
+  }
   const steps = [
     {id:'consentimiento', tipo:'consentimiento'},
     {id:'accesibilidad', tipo:'accesibilidad'},
     {id:'ubicacion', tipo:'ubicacion'},
-    {id:'dormitorios', tipo:'number', texto:'¿Cuántos dormitorios tiene la vivienda? Si es un monoambiente, responde cero.', guarda_en:'dormitorios'},
-    {id:'ventanas', tipo:'number', texto:'¿Cuántas ventanas y puertas balcón tiene la vivienda en total?', guarda_en:'ventanas'},
-    {id:'habitantes_mayores', tipo:'number', texto:'¿Cuántos habitantes de 18 años o más viven en la vivienda?', guarda_en:'habitantes_mayores'},
-    {id:'habitantes_menores', tipo:'number', texto:'¿Cuántos habitantes de 17 años o menos viven en la vivienda?', guarda_en:'habitantes_menores'},
-    {id:'aire_acondicionado', tipo:'boolean_int', texto:'¿La vivienda tiene aire acondicionado?', guarda_en:'aire_acondicionado'},
-    {id:'calefaccion_electrica', tipo:'boolean_int', texto:'¿La calefacción principal de la vivienda es eléctrica?', guarda_en:'calefaccion_electrica'},
-    {id:'agua_caliente_electrica', tipo:'boolean_int', texto:'¿El agua caliente para ducha y lavado de platos se calienta principalmente con electricidad?', guarda_en:'agua_caliente_electrica'},
-    {id:'secarropas_electrico', tipo:'boolean_int', texto:'¿La vivienda tiene secarropas eléctrico?', guarda_en:'secarropas_electrico'},
-    {id:'horno_electrico', tipo:'boolean_int', texto:'¿El horno principal de la vivienda es eléctrico?', guarda_en:'horno_electrico'},
-    {id:'desea_extendida', tipo:'boolean_int', texto:'Con esto ya puedo darte una estimación. ¿Quieres continuar con la versión extendida para afinar el resultado?', guarda_en:'desea_version_extendida', esGate:true},
+    {id:'dormitorios', tipo:'number', get texto(){ return _t('q_dormitorios'); }, guarda_en:'dormitorios'},
+    {id:'ventanas', tipo:'number', get texto(){ return _t('q_ventanas'); }, guarda_en:'ventanas'},
+    {id:'habitantes_mayores', tipo:'number', get texto(){ return _t('q_mayores'); }, guarda_en:'habitantes_mayores'},
+    {id:'habitantes_menores', tipo:'number', get texto(){ return _t('q_menores'); }, guarda_en:'habitantes_menores'},
+    {id:'aire_acondicionado', tipo:'boolean_int', get texto(){ return _t('q_ac'); }, guarda_en:'aire_acondicionado'},
+    {id:'calefaccion_electrica', tipo:'boolean_int', get texto(){ return _t('q_calef'); }, guarda_en:'calefaccion_electrica'},
+    {id:'agua_caliente_electrica', tipo:'boolean_int', get texto(){ return _t('q_agua'); }, guarda_en:'agua_caliente_electrica'},
+    {id:'secarropas_electrico', tipo:'boolean_int', get texto(){ return _t('q_secarropas'); }, guarda_en:'secarropas_electrico'},
+    {id:'horno_electrico', tipo:'boolean_int', get texto(){ return _t('q_horno'); }, guarda_en:'horno_electrico'},
+    {id:'desea_extendida', tipo:'boolean_int', get texto(){ return _t('q_extendida'); }, guarda_en:'desea_version_extendida', esGate:true},
     // agua_caliente_tamano, flag_galones, luces_exterior y luces_interior quedan
     // FUERA del flujo a propósito: JC todavía no tiene esos campos en su formulario
     // (datosPayload los manda hardcodeados). Preguntarlos igual rompía la regla de
     // "mismas preguntas, misma lógica" — se reactivan cuando JC agregue los campos.
-    {id:'lavado_frecuencia', tipo:'number', texto:'¿Cuántas veces por semana lava la ropa?', guarda_en:'lavado_frecuencia', avanzada:true},
-    {id:'refrigerador', tipo:'number', texto:'¿Cuántos refrigeradores tiene la vivienda?', guarda_en:'refrigerador', avanzada:true},
-    {id:'freezer', tipo:'number', texto:'¿Cuántos freezers independientes del refrigerador tiene la vivienda?', guarda_en:'freezer', avanzada:true},
+    {id:'lavado_frecuencia', tipo:'number', get texto(){ return _t('q_lavado'); }, guarda_en:'lavado_frecuencia', avanzada:true},
+    {id:'refrigerador', tipo:'number', get texto(){ return _t('q_refrigerador'); }, guarda_en:'refrigerador', avanzada:true},
+    {id:'freezer', tipo:'number', get texto(){ return _t('q_freezer'); }, guarda_en:'freezer', avanzada:true},
     // luces_exterior y luces_interior: mismo caso, sin campo real en JC todavía.
-    {id:'tv', tipo:'number', texto:'¿Cuántos televisores tiene la vivienda?', guarda_en:'tv', avanzada:true},
-    {id:'tv_frecuencia', tipo:'number', texto:'¿Cuántas horas al día está encendido el televisor principal?', guarda_en:'tv_frecuencia', avanzada:true},
+    {id:'tv', tipo:'number', get texto(){ return _t('q_tv'); }, guarda_en:'tv', avanzada:true},
+    {id:'tv_frecuencia', tipo:'number', get texto(){ return _t('q_tv_freq'); }, guarda_en:'tv_frecuencia', avanzada:true},
     {id:'resumen', tipo:'resumen'}
   ];
 
@@ -831,13 +852,13 @@
     goNext();
   }
   function preguntarSiOmitir(step){
-    const texto = '¿Estás seguro de que quieres enviar sin responder esta pregunta? Quedará como que no la respondiste.';
+    const texto = _t('denji_confirmar_omitir');
     statusEl.textContent = 'Denji: ' + texto;
     hablar(texto);
     card.innerHTML = '<p style="margin:0 0 12px">' + texto + '</p>';
-    const si = document.createElement('button'); si.className='denji-opt-btn'; si.textContent='No, quiero responderla';
+    const si = document.createElement('button'); si.className='denji-opt-btn'; si.textContent=_t('denji_responderla');
     si.onclick = () => render();
-    const no = document.createElement('button'); no.className='denji-opt-btn'; no.textContent='Sí, omitirla';
+    const no = document.createElement('button'); no.className='denji-opt-btn'; no.textContent=_t('denji_omitirla');
     no.onclick = () => goNext();
     card.appendChild(si); card.appendChild(no);
   }
@@ -854,14 +875,14 @@
       // pase nada — importante para personas con TEA o cualquiera que prefiera
       // no tener un personaje animado hablándole sin haberlo pedido.
       statusEl.textContent = 'Denji: pregunta de consentimiento, en espera';
-      card.innerHTML = '<p style="margin:0 0 12px">¿Quieres que el asistente Denji te acompañe hablando y moviéndose por la pantalla mientras completas el formulario, o prefieres hacerlo tú mismo, sin voz ni animaciones?</p>';
-      const siBtn = document.createElement('button'); siBtn.className='denji-opt-btn'; siBtn.textContent='Sí, quiero que me guíe';
+      card.innerHTML = '<p style="margin:0 0 12px">' + _t('denji_consentimiento') + '</p>';
+      const siBtn = document.createElement('button'); siBtn.className='denji-opt-btn'; siBtn.textContent=_t('denji_guiame');
       siBtn.onclick = () => {
         asistenteActivo = true;
         sprite.style.display = '';
         goNext();
       };
-      const noBtn = document.createElement('button'); noBtn.className='denji-opt-btn'; noBtn.textContent='No, prefiero el formulario solo';
+      const noBtn = document.createElement('button'); noBtn.className='denji-opt-btn'; noBtn.textContent=_t('denji_solo');
       noBtn.onclick = () => {
         asistenteActivo = false;
         mostrarModoSinAsistente();
@@ -874,8 +895,8 @@
       const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
       const dark = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
       modoMovimiento = reduce ? 'sin' : 'normal';
-      const resumen = (reduce ? 'movimiento reducido' : 'movimiento normal') + ', ' + (dark ? 'modo oscuro' : 'modo claro');
-      const texto = '¡Hola! Soy Denji. Detecté que tu sistema tiene ' + resumen + '. Voy a usar esta configuración para que la experiencia sea más cómoda. ¿Quieres mantenerla así?';
+      const resumen = (reduce ? _t('denji_mov_reducido') : _t('denji_mov_normal')) + ', ' + (dark ? _t('denji_modo_oscuro') : _t('denji_modo_claro'));
+      const texto = _t('denji_accesibilidad_saludo').replace('{resumen}', resumen);
       statusEl.textContent = 'Denji: ' + texto;
       if(!yaSaludo && !reduce){
         yaSaludo = true;
@@ -885,9 +906,9 @@
         hablar(texto);
       }
       card.innerHTML = '<p style="margin:0 0 12px">' + texto + '</p>';
-      const si = document.createElement('button'); si.className='denji-opt-btn'; si.textContent='Sí, mantenerla';
+      const si = document.createElement('button'); si.className='denji-opt-btn'; si.textContent=_t('denji_mantenerla');
       si.onclick = () => guardarYAvanzar('config_accesibilidad', resumen);
-      const no = document.createElement('button'); no.className='denji-opt-btn'; no.textContent='No, usar valores por defecto';
+      const no = document.createElement('button'); no.className='denji-opt-btn'; no.textContent=_t('denji_valores_defecto');
       no.onclick = () => { modoMovimiento='normal'; guardarYAvanzar('config_accesibilidad', 'por_defecto'); };
       card.appendChild(si); card.appendChild(no);
       return;
@@ -926,7 +947,7 @@
           }
         }
         if(n === null){
-          statusEl.textContent = 'Denji: entendí "' + transcript + '", que no es un número; usa los botones';
+          statusEl.textContent = 'Denji: ' + _t('denji_no_es_numero').replace('{transcript}', transcript);
           return;
         }
         guardarYAvanzar(step.guarda_en, n);
@@ -939,9 +960,9 @@
       statusEl.textContent = 'Denji: ' + step.texto;
       hablar(step.texto);
       card.innerHTML = '<p style="margin:0 0 12px">' + step.texto + '</p>';
-      const si = document.createElement('button'); si.className='denji-opt-btn'; si.textContent='Sí';
+      const si = document.createElement('button'); si.className='denji-opt-btn'; si.textContent=_t('denji_si');
       si.onclick = () => guardarYAvanzar(step.guarda_en, 1);
-      const no = document.createElement('button'); no.className='denji-opt-btn'; no.textContent='No';
+      const no = document.createElement('button'); no.className='denji-opt-btn'; no.textContent=_t('denji_no');
       no.onclick = () => guardarYAvanzar(step.guarda_en, 0);
       card.appendChild(si); card.appendChild(no);
       const micBool = crearBotonMic((transcript) => {
@@ -953,7 +974,7 @@
 
         if(palabras.some(p => NIEGA.includes(p))) guardarYAvanzar(step.guarda_en, 0);
         else if(palabras.some(p => AFIRMA.includes(p))) guardarYAvanzar(step.guarda_en, 1);
-        else statusEl.textContent = 'Denji: entendí "' + transcript + '"; di sí o no, o usa los botones';
+        else statusEl.textContent = 'Denji: ' + _t('denji_no_es_si_no').replace('{transcript}', transcript);
       });
       if(micBool) card.appendChild(micBool);
       return;
@@ -1042,7 +1063,7 @@
       texto += ' Mis recomendaciones: ' + items.join('. ');
     }
 
-    statusEl.textContent = 'Denji: listo, revisa tus recomendaciones';
+    statusEl.textContent = 'Denji: ' + _t('denji_listo');
     hablar(texto);
     card.innerHTML = '<p style="margin:0 0 10px">Listo, aquí está tu resultado:</p>' +
       (kwh ? '<p style="margin:0 0 4px"><strong>Consumo:</strong> ' + kwh + '</p>' : '') +
@@ -1051,7 +1072,7 @@
   }
 
   function detectarUbicacionReal(){
-    statusEl.textContent = 'Denji: Detectando tu ubicación…';
+    statusEl.textContent = 'Denji: ' + _t('denji_detectando_ubicacion');
     card.innerHTML = '<p style="margin:0 0 8px">Detectando tu ubicación…</p>' +
       '<p class="denji-sim-note">Tu navegador te va a pedir permiso para usar tu ubicación. ' +
       'Consultamos la ciudad en OpenStreetMap enviando solo una posición aproximada.</p>';
@@ -1103,7 +1124,7 @@
     statusEl.textContent = 'Denji: ' + texto;
     hablar(texto);
     card.innerHTML = '<p style="margin:0 0 4px">' + texto + '</p>';
-    const si = document.createElement('button'); si.className='denji-opt-btn'; si.textContent='Sí, es correcto';
+    const si = document.createElement('button'); si.className='denji-opt-btn'; si.textContent=_t('denji_es_correcto');
     si.onclick = () => {
       respuestas.pais = pais; respuestas.estado_provincia = region; respuestas.comuna = comuna;
       // Con código ISO se fija el <select> directamente. El emparejamiento por
@@ -1115,7 +1136,7 @@
       escribirValor('estado_provincia', region);
       goNext();
     };
-    const no = document.createElement('button'); no.className='denji-opt-btn'; no.textContent='No, corregir';
+    const no = document.createElement('button'); no.className='denji-opt-btn'; no.textContent=_t('denji_corregir');
     no.onclick = () => renderUbicacionManual();
     card.appendChild(si); card.appendChild(no);
   }
@@ -1123,11 +1144,11 @@
   function mostrarModoSinAsistente(){
     progressWrap.style.display = 'none';
     nombreEl.style.display = 'none';
-    statusEl.textContent = 'Denji: en espera, sin interactuar';
-    card.innerHTML = '<p style="margin:0 0 8px;font-size:12px;color:#666">Puedes llenar el formulario tú mismo, sin el asistente. Si cambias de opinión:</p>';
+    statusEl.textContent = 'Denji: ' + _t('denji_en_espera');
+    card.innerHTML = '<p style="margin:0 0 8px;font-size:12px;color:#666">' + _t('denji_solo_form') + '</p>';
     const activarBtn = document.createElement('button');
     activarBtn.className = 'denji-opt-btn';
-    activarBtn.textContent = 'Activar asistente Denji';
+    activarBtn.textContent = _t('denji_activar');
     activarBtn.onclick = () => {
       asistenteActivo = true;
       sprite.style.display = '';
@@ -1139,10 +1160,10 @@
   }
 
   function renderUbicacionManual(){
-    card.innerHTML = '<p style="margin:0 0 8px">¿En qué país te encuentras?</p><input id="denji-pais" type="text" style="width:200px" />' +
-      '<p style="margin:12px 0 8px">¿En qué estado o provincia?</p><input id="denji-estado" type="text" style="width:200px" />' +
-      '<p style="margin:12px 0 8px">¿En qué comuna o ciudad?</p><input id="denji-comuna" type="text" style="width:200px" />' +
-      '<div style="margin-top:12px"><button class="denji-opt-btn" id="denji-ubi-submit">Continuar</button></div>';
+    card.innerHTML = '<p style="margin:0 0 8px">' + _t('denji_ubi_pais') + '</p><input id="denji-pais" type="text" style="width:200px" />' +
+      '<p style="margin:12px 0 8px">' + _t('denji_ubi_estado') + '</p><input id="denji-estado" type="text" style="width:200px" />' +
+      '<p style="margin:12px 0 8px">' + _t('denji_ubi_comuna') + '</p><input id="denji-comuna" type="text" style="width:200px" />' +
+      '<div style="margin-top:12px"><button class="denji-opt-btn" id="denji-ubi-submit">' + _t('denji_continuar') + '</button></div>';
     document.getElementById('denji-ubi-submit').onclick = () => {
       respuestas.pais = document.getElementById('denji-pais').value || 'No especificado';
       respuestas.estado_provincia = document.getElementById('denji-estado').value || 'No especificado';
@@ -1154,9 +1175,11 @@
   }
 
   // ---------- Auto-inicio ----------
-  // Volti se mantiene visible: funciona como buen complemento de Denji, no
-  // como duplicado a esconder. Si en el futuro se agrega la elección real de
-  // "modo sin interacción", ahí se decide cuál de los dos se oculta.
+  // El panel lateral (el avatar fijo, antes "Volti") se mantiene visible:
+  // funciona como buen complemento del asistente animado (Denji), no como
+  // duplicado a esconder — ambos se llaman "Denji" ahora, pero siguen siendo
+  // dos elementos visuales distintos. Si en el futuro se agrega la elección
+  // real de "modo sin interacción", ahí se decide cuál de los dos se oculta.
   // El label de "Consumo eléctrico mensual (kWh)" queda fijo en el HTML de JC,
   // pero el toggle real (#flagAnual) puede decir mensual o anual. Esto los
   // mantiene sincronizados sin tocar el HTML de JC.

@@ -34,7 +34,7 @@ NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
 
 # Identificación exigida por la política de uso. Sin esto no se llama.
 CONTACTO = os.getenv("NOMINATIM_CONTACTO", "").strip()
-NOMBRE_APP = os.getenv("NOMINATIM_APP", "VolticvS/1.0")
+NOMBRE_APP = os.getenv("NOMINATIM_APP", "DenjiEnergyAdvisor/1.0")
 
 TIMEOUT_S = float(os.getenv("NOMINATIM_TIMEOUT_S", "8"))
 

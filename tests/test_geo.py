@@ -46,8 +46,8 @@ def test_sin_contacto_configurado_no_se_llama_al_servicio(monkeypatch, cliente):
 
 def test_el_user_agent_incluye_el_contacto(monkeypatch):
     monkeypatch.setattr(geo, "CONTACTO", "equipo@ejemplo.org")
-    monkeypatch.setattr(geo, "NOMBRE_APP", "VolticvS/1.0")
-    assert geo._user_agent() == "VolticvS/1.0 (equipo@ejemplo.org)"
+    monkeypatch.setattr(geo, "NOMBRE_APP", "DenjiEnergyAdvisor/1.0")
+    assert geo._user_agent() == "DenjiEnergyAdvisor/1.0 (equipo@ejemplo.org)"
 
 
 # ── Mapeo del país ────────────────────────────────────────────────────────────

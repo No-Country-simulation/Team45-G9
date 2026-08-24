@@ -42,13 +42,13 @@ jobs:
       # Se construye en cada PR sin publicar, para detectar builds rotos antes
       # del merge en vez de al desplegar.
       - name: Construir la imagen
-        run: docker build -t volticvs:ci .
+        run: docker build -t denji-energy-advisor:ci .
 
       # Comprueba que ademas de construir, arranca y responde. Un Dockerfile que
       # compila pero cuyo contenedor muere al iniciar pasaria el paso anterior.
       - name: Arrancar y sondear /health
         run: |
-          docker run -d --name volticvs-ci -p 5000:5000 volticvs:ci
+          docker run -d --name denji-energy-advisor-ci -p 5000:5000 denji-energy-advisor:ci
           for intento in $(seq 1 20); do
             if curl -fsS http://127.0.0.1:5000/health > /tmp/salud.json; then
               cat /tmp/salud.json
@@ -57,16 +57,16 @@ jobs:
             sleep 2
           done
           echo "::error::El contenedor no respondio en /health"
-          docker logs volticvs-ci
+          docker logs denji-energy-advisor-ci
           exit 1
 
       - name: Verificar que la imagen no contiene secretos
         run: |
-          if docker run --rm volticvs:ci sh -c 'ls /app/.env' 2>/dev/null; then
+          if docker run --rm denji-energy-advisor:ci sh -c 'ls /app/.env' 2>/dev/null; then
             echo "::error::La imagen incluye un archivo .env."
             exit 1
           fi
 
       - name: Limpiar
         if: always()
-        run: docker rm -f volticvs-ci || true
+        run: docker rm -f denji-energy-advisor-ci || true

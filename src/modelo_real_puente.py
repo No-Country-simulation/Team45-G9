@@ -20,7 +20,7 @@ import logging
 from src import geo_codigos
 from src.modelo_real_datacience import predecir_eficiencia_real
 
-logger = logging.getLogger("volticvs.modelo_real")
+logger = logging.getLogger("denji.modelo_real")
 
 # ISO-2 (el código que ya usamos en toda la app) -> nombre exacto que usa
 # PAISES en el modelo real. Los países que no aparecen acá (España, Puerto
