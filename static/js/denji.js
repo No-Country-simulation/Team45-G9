@@ -883,6 +883,17 @@
     card.appendChild(si); card.appendChild(no);
   }
 
+  window.addEventListener('wizard-paso-cambio', function(e){
+    // Si el paso del evento es el mismo al que Denji ya se sincronizó por su
+    // cuenta (sincronizarPasoJC), este cambio lo causó el propio Denji —
+    // no hace falta reaccionar, ya está al día. Si es distinto, la persona
+    // navegó el formulario real sin pasar por Denji, y hay que reaccionar
+    // de inmediato en vez de esperar a que Denji renderice algo por su
+    // cuenta (que es lo que causaba el bug de "queda pegado").
+    if(e.detail.paso === ultimoJCStep) return;
+    render();
+  });
+
   function resincronizarConPaginaReal(){
     // Si la persona avanzó usando el formulario real (botón Siguiente, clic
     // directo en los campos) sin pasar por Denji, window.wizardPasoActual

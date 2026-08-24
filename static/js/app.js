@@ -167,6 +167,13 @@ function showStep(stepNumber) {
   // queda mostrando preguntas de un paso anterior mientras la página real
   // ya avanzó, y "Confirmar" queda desconectado de lo que se ve en pantalla.
   window.wizardPasoActual = stepNumber;
+  // Antes esto solo quedaba disponible para que Denji lo revisara la
+  // PRÓXIMA vez que fuera a renderizar algo por su cuenta — si la persona
+  // navegaba el formulario real y no volvía a tocar nada de Denji, su
+  // tarjeta se quedaba congelada sin enterarse, hasta que la persona
+  // interactuaba con ella (el bug de "queda pegado"). Este evento avisa de
+  // inmediato, sin esperar a que Denji haga algo primero.
+  window.dispatchEvent(new CustomEvent('wizard-paso-cambio', { detail: { paso: stepNumber } }));
   wizardSteps.forEach(step => {
     step.classList.toggle('wizard-step--active', parseInt(step.dataset.step) === stepNumber);
   });
