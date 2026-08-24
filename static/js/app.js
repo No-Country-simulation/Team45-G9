@@ -84,16 +84,22 @@ function _t(key) {
 }
 
 let _ultimoKeyVolti = 1;
+let _ultimoMensajeOverride = null;
 
-function updateVoltiMessage(key) {
+function updateVoltiMessage(key, mensajeOverride) {
   _ultimoKeyVolti = key;
+  _ultimoMensajeOverride = mensajeOverride || null;
   const claveTraduccion = 'volti_msg_' + key;
   const traducido = _t(claveTraduccion);
   // Si window.DenjiI18n no existe o la clave no está en el diccionario,
   // t() devuelve la clave misma tal cual ("volti_msg_1") en vez de un
   // valor vacío — hay que detectar ese caso explícito para caer bien al
   // mensaje en español, no mostrar la clave literal en pantalla.
-  const message = (traducido !== claveTraduccion) ? traducido : (VOLTI_MESSAGES[key] || VOLTI_MESSAGES[1]);
+  // mensajeOverride manda cuando existe: antes, cualquier error de
+  // validación mostraba la misma frase genérica ("Oops, parece que faltan
+  // algunos datos"), sin decir CUÁL — mientras el error específico y real
+  // aparecía chico, en rojo, junto al campo. Ahora Denji dice lo mismo.
+  const message = mensajeOverride || ((traducido !== claveTraduccion) ? traducido : (VOLTI_MESSAGES[key] || VOLTI_MESSAGES[1]));
   const imgSrc  = VOLTI_ASSETS[key]   || VOLTI_ASSETS[1];
   const claveMood = 'volti_mood_' + key;
   const moodTraducido = _t(claveMood);
@@ -126,7 +132,7 @@ function updateVoltiMessage(key) {
 // burbuja se refresca en el sitio con el mismo estado que ya mostraba —
 // nada se pierde, nada se reinicia.
 window.addEventListener('denji-lang-change', function () {
-  updateVoltiMessage(_ultimoKeyVolti);
+  updateVoltiMessage(_ultimoKeyVolti, _ultimoMensajeOverride);
 });
 
 // ── 4. WIZARD Y PROGRESS BAR ─────────────────────────────────
@@ -155,6 +161,12 @@ function showStep(stepNumber) {
   // currentStep siempre correcto, sin tener que acordarse de hacerlo en
   // cada lugar por separado.
   currentStep = stepNumber;
+  // Expuesto para que Denji (denji.js) pueda resincronizar su propio
+  // contador interno de preguntas cuando la persona avanza usando el
+  // formulario real directo (no a través de Denji) — sin esto, Denji se
+  // queda mostrando preguntas de un paso anterior mientras la página real
+  // ya avanzó, y "Confirmar" queda desconectado de lo que se ve en pantalla.
+  window.wizardPasoActual = stepNumber;
   wizardSteps.forEach(step => {
     step.classList.toggle('wizard-step--active', parseInt(step.dataset.step) === stepNumber);
   });
@@ -172,8 +184,16 @@ function clearError(el) {
   el.parentNode?.querySelector('.error-msg')?.remove();
 }
 
+// El mensaje genérico de Denji ("Oops, parece que faltan algunos datos")
+// no decía QUÉ estaba mal — se veía distinto al error específico y rojo que
+// sí aparece junto al campo, así que la persona tenía que encontrarlo por su
+// cuenta. Estas dos funciones guardan el primer mensaje real acá, para que
+// Denji lo use en vez de su frase genérica.
+let _primerMensajeError = null;
+
 function showError(el, mensaje) {
   if (!el) return;
+  if (!_primerMensajeError) _primerMensajeError = mensaje;
   el.classList.add('input-error', 'shake');
   let msg = el.parentNode?.querySelector('.error-msg');
   if (!msg && el.parentNode) {
@@ -192,6 +212,7 @@ function showError(el, mensaje) {
  * Denji poner gesto de error sin saber qué había pasado ni qué hacer.
  */
 function mostrarErrorGlobal(mensaje) {
+  if (!_primerMensajeError) _primerMensajeError = mensaje;
   let aviso = document.getElementById('avisoGlobal');
   if (!aviso) {
     aviso = document.createElement('div');
@@ -211,6 +232,7 @@ function ocultarErrorGlobal() {
 
 function validarPaso(pasoActual) {
   let valido = true;
+  _primerMensajeError = null;
   document.querySelector(`.wizard-step[data-step="${pasoActual}"]`)
     ?.querySelectorAll('.input-error').forEach(clearError);
   ocultarErrorGlobal();
@@ -269,7 +291,7 @@ function validarPaso(pasoActual) {
     }
   }
 
-  if (!valido) updateVoltiMessage('error');
+  if (!valido) updateVoltiMessage('error', _primerMensajeError);
   return valido;
 }
 
@@ -705,7 +727,7 @@ document.getElementById('btnSubmit')?.addEventListener('click', async (evento) =
 
     if (!res.ok) {
       mostrarErrorGlobal(await mensajeDeError(res));
-      updateVoltiMessage('error');
+      updateVoltiMessage('error', _primerMensajeError);
       return;
     }
 
@@ -718,7 +740,7 @@ document.getElementById('btnSubmit')?.addEventListener('click', async (evento) =
     mostrarErrorGlobal(esTimeout
       ? 'El cálculo está tardando más de lo normal. Revisa tu conexión e inténtalo de nuevo.'
       : 'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.');
-    updateVoltiMessage('error');
+    updateVoltiMessage('error', _primerMensajeError);
   } finally {
     boton.disabled = false;
     boton.innerHTML = textoOriginal;

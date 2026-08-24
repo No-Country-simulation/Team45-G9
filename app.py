@@ -1133,7 +1133,20 @@ def _calcular_analisis_energetico():
     if consumo_declarado > 0:
         consumo_kwh = round(consumo_declarado, 1)
         fuente_consumo = "declarado"
-        desglose = {"Consumo declarado en recibo": consumo_kwh}
+        # El desglose real por artefacto (perfil["desglose"]) ya se calcula
+        # SIEMPRE, arriba, para el ahorro — antes se descartaba acá para el
+        # gráfico y se reemplazaba por un solo bloque "Consumo declarado en
+        # recibo: 100%". Ahora se reusa, escalado para que sume exacto el
+        # total declarado (que manda, por ser más confiable que la
+        # estimación) — la persona ve de qué se compone su consumo real, no
+        # solo el número final. Si no hay ningún artefacto declarado (nada
+        # que desglosar), se cae al bloque único de antes.
+        total_estimado = sum(perfil["desglose"].values()) if perfil["desglose"] else 0
+        if total_estimado > 0:
+            factor_escala = consumo_kwh / total_estimado
+            desglose = {nombre: round(kwh * factor_escala, 2) for nombre, kwh in perfil["desglose"].items()}
+        else:
+            desglose = {"Consumo declarado en recibo": consumo_kwh}
     elif perfil["consumo_kwh"] > 0:
         consumo_kwh = perfil["consumo_kwh"]
         fuente_consumo = "estimado"

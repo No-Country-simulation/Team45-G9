@@ -883,7 +883,26 @@
     card.appendChild(si); card.appendChild(no);
   }
 
+  function resincronizarConPaginaReal(){
+    // Si la persona avanzó usando el formulario real (botón Siguiente, clic
+    // directo en los campos) sin pasar por Denji, window.wizardPasoActual
+    // queda por delante de lo que Denji cree que está preguntando (idx).
+    // Sin esto, Denji se queda repitiendo preguntas de un paso anterior
+    // mientras la página real ya avanzó — el bug de "Confirmar pegado".
+    const pasoReal = window.wizardPasoActual;
+    if(typeof pasoReal !== 'number') return;
+    let cambio = false;
+    while(idx < steps.length){
+      const s = steps[idx];
+      const pasoDeEstaPregunta = s && s.guarda_en ? JC_STEP_POR_CAMPO[s.guarda_en] : null;
+      if(pasoDeEstaPregunta && pasoDeEstaPregunta < pasoReal){ idx++; cambio = true; continue; }
+      break;
+    }
+    return cambio;
+  }
+
   function render(){
+    resincronizarConPaginaReal();
     updateProgress();
     const step = steps[idx];
     card.innerHTML = '';
