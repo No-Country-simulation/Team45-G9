@@ -590,16 +590,21 @@
     refrigerador:            { tipo: 'counter', id: 'refrigerador' },
     freezer:                 { tipo: 'counter', id: 'freezer' },
     tv:                      { tipo: 'counter', id: 'tv' },
-    tv_frecuencia:           { tipo: 'number',  id: 'tvFrecuencia' } // OJO: este campo es horas DIARIAS, no semanales (ver nota en steps)
-    // agua_caliente_tamano, flag_galones, luces_exterior, luces_interior: JC los manda
-    // hardcodeados a 0 por ahora, no hay campo real en su UI. Pendiente pedírselo.
+    tv_frecuencia:           { tipo: 'number',  id: 'tvFrecuencia' }, // OJO: este campo es horas DIARIAS, no semanales (ver nota en steps)
+    luces_exterior:          { tipo: 'counter', id: 'inputLucesExterior' },
+    luces_interior:          { tipo: 'counter', id: 'inputLucesInterior' },
+    cantidad_cargadores:     { tipo: 'counter', id: 'inputCargadoresVampiro' }
+    // agua_caliente_tamano, flag_galones: siguen sin campo real en el UI —
+    // el backend los asume 0 (calentador eléctrico estándar). Las luces y
+    // los cargadores SÍ tienen campo real desde esta sesión; ya están arriba.
   };
 
   // A qué paso del wizard de JC (1-4) pertenece cada campo, para sincronizar showStep()
   const JC_STEP_POR_CAMPO = {
-    pais: 1, estado_provincia: 1,
+    pais: 1, estado_provincia: 1, rangos_horario_uso: 1,
     dormitorios: 2, ventanas: 2, habitantes_mayores: 2, habitantes_menores: 2,
     aire_acondicionado: 3, calefaccion_electrica: 3, agua_caliente_electrica: 3, secarropas_electrico: 3, horno_electrico: 3,
+    luces_exterior: 3, luces_interior: 3, cantidad_cargadores: 3,
     lavado_frecuencia: 4, refrigerador: 4, freezer: 4, tv: 4, tv_frecuencia: 4
   };
   let ultimoJCStep = 0;
@@ -664,6 +669,17 @@
   }
 
   function escribirValor(guardaEn, valor){
+    if(guardaEn === 'rangos_horario_uso'){
+      // Caso especial: no es un solo campo, son hasta 7 casillas a la vez —
+      // no cabe en el patrón genérico de abajo (que asume un único elemento).
+      escribiendoDesdeDenji = true;
+      document.querySelectorAll('.rango-horario').forEach(cb => {
+        cb.checked = Array.isArray(valor) && valor.includes(cb.value);
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      escribiendoDesdeDenji = false;
+      return true;
+    }
     const campo = MAPEO_CAMPOS[guardaEn];
     if(!campo) return false;
     if(campo.tipo === 'pais-select'){ return fijarPaisPorNombre(valor); }
@@ -809,6 +825,7 @@
     {id:'consentimiento', tipo:'consentimiento'},
     {id:'accesibilidad', tipo:'accesibilidad'},
     {id:'ubicacion', tipo:'ubicacion'},
+    {id:'rangos_horario_uso', tipo:'checklist-horario', get texto(){ return _t('q_horario_pico'); }, guarda_en:'rangos_horario_uso'},
     {id:'dormitorios', tipo:'number', get texto(){ return _t('q_dormitorios'); }, guarda_en:'dormitorios'},
     {id:'ventanas', tipo:'number', get texto(){ return _t('q_ventanas'); }, guarda_en:'ventanas'},
     {id:'habitantes_mayores', tipo:'number', get texto(){ return _t('q_mayores'); }, guarda_en:'habitantes_mayores'},
@@ -818,6 +835,9 @@
     {id:'agua_caliente_electrica', tipo:'boolean_int', get texto(){ return _t('q_agua'); }, guarda_en:'agua_caliente_electrica'},
     {id:'secarropas_electrico', tipo:'boolean_int', get texto(){ return _t('q_secarropas'); }, guarda_en:'secarropas_electrico'},
     {id:'horno_electrico', tipo:'boolean_int', get texto(){ return _t('q_horno'); }, guarda_en:'horno_electrico'},
+    {id:'luces_exterior', tipo:'number', get texto(){ return _t('q_luces_ext'); }, guarda_en:'luces_exterior', avanzada:true},
+    {id:'luces_interior', tipo:'number', get texto(){ return _t('q_luces_int'); }, guarda_en:'luces_interior', avanzada:true},
+    {id:'cantidad_cargadores', tipo:'number', get texto(){ return _t('q_cargadores'); }, guarda_en:'cantidad_cargadores', avanzada:true},
     {id:'desea_extendida', tipo:'boolean_int', get texto(){ return _t('q_extendida'); }, guarda_en:'desea_version_extendida', esGate:true},
     // agua_caliente_tamano, flag_galones, luces_exterior y luces_interior quedan
     // FUERA del flujo a propósito: JC todavía no tiene esos campos en su formulario
@@ -953,6 +973,37 @@
         guardarYAvanzar(step.guarda_en, n);
       });
       if(micNum) card.querySelector('div:last-child').appendChild(micNum);
+      return;
+    }
+
+    if(step.tipo === 'checklist-horario'){
+      const BLOQUES = [
+        {valor:'madrugada', clave:'hr_dawn'}, {valor:'manana_temprano', clave:'hr_early_morning'},
+        {valor:'manana', clave:'hr_morning'}, {valor:'mediodia', clave:'hr_midday'},
+        {valor:'tarde', clave:'hr_afternoon'}, {valor:'noche_pico', clave:'hr_peak_night'},
+        {valor:'noche_tardia', clave:'hr_late_night'},
+      ];
+      statusEl.textContent = 'Denji: ' + step.texto;
+      hablar(step.texto);
+      card.innerHTML = '<p style="margin:0 0 12px">' + step.texto + '</p>' +
+        '<div id="denji-horario-opts" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>' +
+        '<button class="denji-opt-btn" id="denji-horario-confirmar">' + _t('denji_confirmar', 'Confirmar') + '</button> ' +
+        '<button class="denji-opt-btn" id="denji-horario-omitir">' + _t('denji_no_se', 'No lo sé') + '</button>';
+      const seleccionados = new Set();
+      const opts = document.getElementById('denji-horario-opts');
+      BLOQUES.forEach(b => {
+        const btn = document.createElement('button');
+        btn.className = 'denji-opt-btn';
+        btn.textContent = _t(b.clave);
+        btn.style.textAlign = 'left';
+        btn.onclick = () => {
+          if(seleccionados.has(b.valor)){ seleccionados.delete(b.valor); btn.style.opacity='1'; }
+          else { seleccionados.add(b.valor); btn.style.opacity='0.55'; }
+        };
+        opts.appendChild(btn);
+      });
+      document.getElementById('denji-horario-confirmar').onclick = () => guardarYAvanzar(step.guarda_en, Array.from(seleccionados));
+      document.getElementById('denji-horario-omitir').onclick = () => guardarYAvanzar(step.guarda_en, []);
       return;
     }
 
@@ -1218,6 +1269,20 @@
   sincronizarLabelConsumo();
   agregarBotonesOmitirEnHTML();
   actualizarAnimacion();
+
+  // app.js (resetearTodo()) ya llamaba a window.denjiReiniciar() al final —
+  // la llamada estaba puesta, pero la función nunca se había implementado
+  // acá. Sin esto, después de un primer cálculo, Denji cree que todos los
+  // campos ya están respondidos (camposTocados) y se salta las preguntas
+  // en el segundo uso, aunque el formulario visual sí se haya limpiado.
+  window.denjiReiniciar = function(){
+    idx = 0;
+    Object.keys(respuestas).forEach(k => delete respuestas[k]);
+    Object.keys(camposTocados).forEach(k => delete camposTocados[k]);
+    ultimoJCStep = 0;
+    render();
+  };
+
   if(document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', render);
   } else {
