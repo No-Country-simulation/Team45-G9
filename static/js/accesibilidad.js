@@ -33,7 +33,7 @@
   const NIVEL_DEFAULT = 2; // "Normal"
 
   const MODOS_COLOR = [
-    { id: 'normal',         label: 'Normal',                   emoji: '🎨' },
+    { id: 'normal',         label: 'Estándar',                 emoji: '🎨' },
     { id: 'deuteranopia',   label: 'Rojo-verde (deuteranopia)', emoji: '👁️' },
     { id: 'tritanopia',     label: 'Azul-amarillo (tritanopia)',emoji: '👁️' },
     { id: 'alto-contraste', label: 'Alto contraste',            emoji: '◑'  },
