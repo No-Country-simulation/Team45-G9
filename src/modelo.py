@@ -219,7 +219,7 @@ def calcular_score_eficiencia(d: dict, consumo_kwh: float) -> dict:
         salida = resultado_real["salida"]
         return {
             "score": float(salida["Indice de eficiencia"]),
-            "letra": salida["Perfil de eficiencia"],
+            "letra": "C" if salida["Perfil de eficiencia"] in ["C+", "C-"] else salida["Perfil de eficiencia"],
             "interpretacion": _mapear_rango(float(salida["Indice de eficiencia"]), RANGOS_INTERPRETACION),
             "fuente": "modelo_real_datacience",
             "ranking": salida.get("Ranking"),
