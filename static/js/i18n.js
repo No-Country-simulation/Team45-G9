@@ -169,7 +169,7 @@
     font_very_large: { es: 'Muy grande', en: 'Very large', pt: 'Muito grande' },
 
     // Color mode labels
-    color_normal:          { es: 'Normal', en: 'Normal', pt: 'Normal' },
+    color_normal:          { es: 'Estándar', en: 'Standard', pt: 'Padrão' },
     color_deuteranopia:    { es: 'Rojo-verde (deuteranopia)', en: 'Red-green (deuteranopia)', pt: 'Vermelho-verde (deuteranopia)' },
     color_tritanopia:      { es: 'Azul-amarillo (tritanopia)', en: 'Blue-yellow (tritanopia)', pt: 'Azul-amarelo (tritanopia)' },
     color_high_contrast:   { es: 'Alto contraste', en: 'High contrast', pt: 'Alto contraste' },
